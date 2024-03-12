@@ -131,3 +131,51 @@ finally:
 
 # cap.release()
 # cv2.destroyAllWindows()
+import cv2
+import numpy as np
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+
+class ImagePublisher(Node):
+    def __init__(self):
+        super().__init__('image_publisher')
+        self.publisher_ = self.create_publisher(Image, 'image_topic', 10)
+        self.timer_ = self.create_timer(1.0 / 30, self.publish_image)  # adjust the rate as needed
+        self.bridge = CvBridge()
+
+    def publish_image(self):
+        # Read frames from RealSense camera
+        frames = pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+        if not color_frame:
+            return
+
+        # Convert RealSense frame to OpenCV format
+        image = np.asanyarray(color_frame.get_data())
+
+        # Convert OpenCV image to ROS image
+        ros_image = self.bridge.cv2_to_imgmsg(image, 'bgr8')
+
+        # Publish the ROS image
+        self.publisher_.publish(ros_image)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    image_publisher = ImagePublisher()
+
+    rclpy.spin(image_publisher)
+
+    image_publisher.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
