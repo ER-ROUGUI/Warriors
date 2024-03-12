@@ -177,5 +177,43 @@ if __name__ == '__main__':
     main()
 
 
+import cv2
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+
+class ImageSubscriber(Node):
+    def __init__(self):
+        super().__init__('image_subscriber')
+        self.subscription = self.create_subscription(
+            Image,
+            'image_topic',
+            self.image_callback,
+            10
+        )
+        self.subscription  # prevent unused variable warning
+        self.bridge = CvBridge()
+
+    def image_callback(self, msg):
+        # Convert ROS image to OpenCV format
+        image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+
+        # Display the image using OpenCV
+        cv2.imshow('Received Image', image)
+        cv2.waitKey(1)  # Adjust as needed to display the image
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    image_subscriber = ImageSubscriber()
+
+    rclpy.spin(image_subscriber)
+
+    image_subscriber.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
 
 
