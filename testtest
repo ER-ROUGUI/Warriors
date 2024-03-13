@@ -1,3 +1,69 @@
+gettttttt
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image, Point
+from cv_bridge import CvBridge
+import cv2
+import pyrealsense2 as rs
+import numpy as np
+
+class DepthSubscriber(Node):
+
+    def __init__(self, x_center, y_center):
+        super().__init__('depth_subscriber')
+
+        self.bridge = CvBridge()
+        self.pipeline = rs.pipeline()
+        config = rs.config()
+        config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        self.pipeline.start(config)
+
+        self.image_subscription = self.create_subscription(Image, '/camera/image_raw/compressed', self.image_callback, 10)
+        self.x_center = x_center
+        self.y_center = y_center
+        self.depth_scale = None
+
+    def image_callback(self, msg):
+        color_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+
+        frames = self.pipeline.wait_for_frames()
+        depth_frame = frames.get_depth_frame()
+        if depth_frame:
+            depth_image = np.asanyarray(depth_frame.get_data())
+
+            # Check if depth scale is available (might not be in all RealSense devices)
+            if self.depth_scale is None:
+                self.depth_scale = depth_frame.get_scale()
+
+            # Calculate depth at the specified point (assuming pixel coordinates)
+            depth_value_at_point = depth_image[self.y_center, self.x_center] * self.depth_scale  # Apply depth scale if available
+
+            # Optional: Overlay depth value on the color image (for visualization)
+            # cv2.putText(color_image, f"Depth: {depth_value_at_point:.2f} m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+            # Publish the depth value as a custom message (consider using a more descriptive message type)
+            depth_msg = Point()
+            depth_msg.x = depth_value_at_point
+            self.get_logger().info(f"Depth at ({self.x_center}, {self.y_center}): {depth_value_at_point:.2f} m")
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    # Get x-center and y-center values from user input or other source (replace with your logic)
+    x_center = int(input("Enter x-center coordinate (pixel): "))
+    y_center = int(input("Enter y-center coordinate (pixel): "))
+
+    depth_subscriber = DepthSubscriber(x_center, y_center)
+
+    rclpy.spin(depth_subscriber)
+
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
 
 import rclpy
 from rclpy.node import Node
