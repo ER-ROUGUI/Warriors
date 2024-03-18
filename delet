@@ -1,74 +1,29 @@
-[INFO] [launch]: All log files can be found below /home/orange/.ros/log/2024-03-18-10-54-52-696594-nuc-ros-48305
-[INFO] [launch]: Default logging verbosity is set to INFO
-Task exception was never retrieved
-future: <Task finished name='Task-2' coro=<LaunchService._process_one_event() done, defined at /opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py:226> exception=SubstitutionFailure("executable 'cartographer_occupancy_grid_node' not found on the libexec directory '/opt/ros/foxy/lib/cartographer_ros' ")>
-Traceback (most recent call last):
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 228, in _process_one_event
-    await self.__process_event(next_event)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 248, in __process_event
-    visit_all_entities_and_collect_futures(entity, self.__context))
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 45, in visit_all_entities_and_collect_futures
-    futures_to_return += visit_all_entities_and_collect_futures(sub_entity, context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 45, in visit_all_entities_and_collect_futures
-    futures_to_return += visit_all_entities_and_collect_futures(sub_entity, context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 45, in visit_all_entities_and_collect_futures
-    futures_to_return += visit_all_entities_and_collect_futures(sub_entity, context)
-  [Previous line repeated 1 more time]
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 38, in visit_all_entities_and_collect_futures
-    sub_entities = entity.visit(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/action.py", line 108, in visit
-    return self.execute(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch_ros/actions/node.py", line 453, in execute
-    ret = super().execute(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/actions/execute_process.py", line 823, in execute
-    self.__expand_substitutions(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/actions/execute_process.py", line 668, in __expand_substitutions
-    cmd = [perform_substitutions(context, x) for x in self.__cmd]
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/actions/execute_process.py", line 668, in <listcomp>
-    cmd = [perform_substitutions(context, x) for x in self.__cmd]
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/perform_substitutions_impl.py", line 26, in perform_substitutions
-    return ''.join([context.perform_substitution(sub) for sub in subs])
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/perform_substitutions_impl.py", line 26, in <listcomp>
-    return ''.join([context.perform_substitution(sub) for sub in subs])
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_context.py", line 232, in perform_substitution
-    return substitution.perform(self)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch_ros/substitutions/executable_in_package.py", line 84, in perform
-    raise SubstitutionFailure(
-launch.substitutions.substitution_failure.SubstitutionFailure: executable 'cartographer_occupancy_grid_node' not found on the libexec directory '/opt/ros/foxy/lib/cartographer_ros' 
-Task exception was never retrieved
-future: <Task finished name='Task-8' coro=<LaunchService._process_one_event() done, defined at /opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py:226> exception=RuntimeError('Signal event received before subprocess transport available.')>
-Traceback (most recent call last):
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 228, in _process_one_event
-    await self.__process_event(next_event)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 248, in __process_event
-    visit_all_entities_and_collect_futures(entity, self.__context))
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 38, in visit_all_entities_and_collect_futures
-    sub_entities = entity.visit(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/action.py", line 108, in visit
-    return self.execute(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/actions/opaque_function.py", line 75, in execute
-    return self.__function(context, *self.__args, **self.__kwargs)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/actions/execute_process.py", line 443, in __on_signal_process_event
-    raise RuntimeError('Signal event received before subprocess transport available.')
-RuntimeError: Signal event received before subprocess transport available.
-[INFO] [cartographer_node-1]: process started with pid [48307]
-[cartographer_node-1] [INFO] [1710755693.100990761] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/app/augmented-robots/server/nux_ws/install/navigation_/share/navigation_/config/turtlebot3_lds_2d.lua' for 'turtlebot3_lds_2d.lua'.
-[cartographer_node-1] [INFO] [1710755693.101966794] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/map_builder.lua' for 'map_builder.lua'.
-[cartographer_node-1] [INFO] [1710755693.102245121] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/map_builder.lua' for 'map_builder.lua'.
-[cartographer_node-1] [INFO] [1710755693.102529015] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/pose_graph.lua' for 'pose_graph.lua'.
-[cartographer_node-1] [INFO] [1710755693.102680117] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/pose_graph.lua' for 'pose_graph.lua'.
-[cartographer_node-1] [INFO] [1710755693.103307693] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/trajectory_builder.lua' for 'trajectory_builder.lua'.
-[cartographer_node-1] [INFO] [1710755693.103494812] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/trajectory_builder.lua' for 'trajectory_builder.lua'.
-[cartographer_node-1] [INFO] [1710755693.103658769] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/trajectory_builder_2d.lua' for 'trajectory_builder_2d.lua'.
-[cartographer_node-1] [INFO] [1710755693.103894449] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/trajectory_builder_2d.lua' for 'trajectory_builder_2d.lua'.
-[cartographer_node-1] [INFO] [1710755693.104469780] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/trajectory_builder_3d.lua' for 'trajectory_builder_3d.lua'.
-[cartographer_node-1] [INFO] [1710755693.104606589] [cartographer_ros]: I0318 10:54:53.000000 48307 configuration_file_resolver.cc:41] Found '/opt/ros/foxy/share/cartographer/configuration_files/trajectory_builder_3d.lua' for 'trajectory_builder_3d.lua'.
-[cartographer_node-1] 1710755693.112486 [5] cartograph: using network interface wlp0s20f3 (udp/192.168.10.153) selected arbitrarily from: wlp0s20f3, docker0
-[cartographer_node-1] [INFO] [1710755693.164810484] [cartographer_ros]: I0318 10:54:53.000000 48307 submap_2d.cc:187] Added submap 1
-[cartographer_node-1] [INFO] [1710755693.164889410] [cartographer_ros]: I0318 10:54:53.000000 48307 map_builder_bridge.cc:132] Added trajectory with ID '0'.
-[cartographer_node-1] [INFO] [1710755693.274805983] [cartographer_ros]: I0318 10:54:53.000000 48307 ordered_multi_queue.cc:172] All sensor data for trajectory 0 is available starting at '621356004464060000'.
-[cartographer_node-1] [INFO] [1710755693.300938744] [cartographer_ros]: I0318 10:54:53.000000 48307 local_trajectory_builder_2d.cc:295] Extrapolator not yet initialized.
-[cartographer_node-1] [WARN] [1710755693.307254669] [cartographer_ros]: W0318 10:54:53.000000 48307 pose_extrapolator.cc:168] Queue too short for velocity estimation. Queue duration: 0 ms
-[ERROR] [cartographer_node-1]: process[cartographer_node-1] failed to terminate '5' seconds after receiving 'SIGINT', escalating to 'SIGTERM'
-[INFO] [cartographer_node-1]: sending signal 'SIGTERM' to process[cartographer_node-1]
-[ERROR] [cartographer_node-1]: process has died [pid 48307, exit code -15, cmd '/opt/ros/foxy/lib/cartographer_ros/cartographer_node -configuration_directory /app/augmented-robots/server/nux_ws/install/navigation_/share/navigation_/config -configuration_basename turtlebot3_lds_2d.lua --ros-args -r __node:=mapping_node'].
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+
+
+def generate_launch_description():
+    
+    config_dir = os.path.join(get_package_share_directory('navigation_'),'config')
+
+    return LaunchDescription([
+
+    Node(
+        package='cartographer_ros',
+        executable='cartographer_node',
+        name='mapping_node',
+        output='screen',
+        arguments=['-configuration_directory', config_dir  , '-configuration_basename' , 'turtlebot3_lds_2d.lua']
+
+        ),
+    Node(
+        package='cartographer_ros',
+        executable='cartographer_occupancy_grid_node',
+        name='occupancy_node',
+        output='screen'
+
+        ),
+    ])
