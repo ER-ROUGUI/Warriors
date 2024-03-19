@@ -1,29 +1,32 @@
+import launch
 import os
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 
 
+config_dir = os.path.join(get_package_share_directory('navigation_husarion'),'config')
+rviz_config_dir = os.path.join(config_dir ,'navigation.rviz')
 
 def generate_launch_description():
-    
-    config_dir = os.path.join(get_package_share_directory('navigation_'),'config')
-
+    rosbot_description = get_package_share_directory('rosbot_description')
     return LaunchDescription([
-
-    Node(
-        package='cartographer_ros',
-        executable='cartographer_node',
-        name='mapping_node',
-        output='screen',
-        arguments=['-configuration_directory', config_dir  , '-configuration_basename' , 'turtlebot3_lds_2d.lua']
-
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([rosbot_description, '/launch/rosbot_navigation_pro.launch.py']),
         ),
-    Node(
-        package='cartographer_ros',
-        executable='cartographer_occupancy_grid_node',
-        name='occupancy_node',
-        output='screen'
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([rosbot_description, '/launch/slam_toolbox.launch.py']),
+        ),
+
+        Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2_node',
+        arguments =['-d',rviz_config_dir],
+        output='screen',
 
         ),
     ])
