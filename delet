@@ -1,28 +1,79 @@
-ros2 topic pub /goal_pose geometry_msgs/PoseStamped "{header: {stamp: {sec: 0}, frame_id: 'map'}, pose: {position: {x: 0.2, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}"
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
+from nav2_msgs.action import NavigateToGoal
 
 class GoalPublisher(Node):
 
   def __init__(self):
     super().__init__('goal_publisher')
     self.goal_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)  # Queue size: 10 messages
+    self.client = self.create_client(NavigateToGoal, '/navigate_to_goal')
     self.timer = self.create_timer(1.0, self.publish_goal)  # Publish every 1 second
 
+    # Définir trois poses d'objectif
+    self.goal_poses = [
+      {  # Goal 1 (x=0.2, y=0.0)
+        'x': 0.2,
+        'y': 0.0,
+        'z': 0.0,
+        'w': 1.0,
+      },
+      {  # Goal 2 (x=0.5, y=0.5)
+        'x': 0.5,
+        'y': 0.5,
+        'z': 0.0,
+        'w': 1.0,
+      },
+      {  # Goal 3 (x=-0.2, y=-0.2)
+        'x': -0.2,
+        'y': -0.2,
+        'z': 0.0,
+        'w': 1.0,
+      },
+    ]
+
+    self.goal_index = 0  # Index pour suivre l'objectif actuel
+    self.goal_sent = False  # Indicateur si l'objectif actuel a été envoyé
+
   def publish_goal(self):
-    goal_pose = PoseStamped()
-    goal_pose.header.stamp.sec = 0  # Set timestamp to 0 seconds
-    goal_pose.header.frame_id = 'map'  # Set frame_id to 'map'
+    if self.goal_index >= len(self.goal_poses):
+      self.get_logger().info('Tous les objectifs ont été publiés. Sortie.')
+      self.timer.cancel()  # Arrêter le timer après la publication de tous les objectifs
+      return
 
-    goal_pose.pose.position.x = 0.2  # Set x position to 0.2 meters
-    goal_pose.pose.position.y = 0.0  # Set y position to 0.0 meters
-    goal_pose.pose.position.z = 0.0  # Set z position to 0.0 meters
+    if not self.goal_sent:
+      goal_pose = PoseStamped()
+      goal_pose.header.stamp.sec = 0  # Définir l'horodatage à 0 seconde
+      goal_pose.header.frame_id = 'map'  # Définir l'ID de trame sur 'map'
 
-    goal_pose.pose.orientation.w = 1.0  # Set orientation to represent no rotation (quaternion)
+      current_goal = self.goal_poses[self.goal_index]
+      goal_pose.pose.position.x = current_goal['x']
+      goal_pose.pose.position.y = current_goal['y']
+      goal_pose.pose.position.z = current_goal['z']
+      goal_pose.pose.orientation.w = current_goal['w']  # Pas de rotation
 
-    self.goal_pub.publish(goal_pose)
-    self.get_logger().info('Published goal pose.')
+      self.goal_pub.publish(goal_pose)
+      self.get_logger().info(f'Objectif publié {self.goal_index + 1}.')
+
+      self.goal_sent = True
+
+    # Envoyer une requête de navigation vers l'objectif actuel
+    goal_request = NavigateToGoal.Request()
+    goal_request.goal.pose = goal_pose
+
+    self.client.call_async(goal_request)
+
+    # Définir un timer pour vérifier l'état de la navigation
+    self.check_navigation_status_timer = self.create_timer(1.0, self.check_navigation_status)
+
+  def check_navigation_status(self):
+    if self.client.is_response_received:
+      response = self.client.get_result()
+      if response.result.status.code == 1:  # Goal reached
+        self.get_logger().info('Objectif atteint.')
+        self.goal_sent = False  # Réinitialiser l'indicateur pour envoyer l'objectif suivant
+        self.check_navigation_status_timer.cancel()  # Arrêter le timer de vérification
 
 def main():
   rclpy.init()
