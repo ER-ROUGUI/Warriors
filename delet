@@ -1,3 +1,80 @@
+import rclpy
+from rclpy.node import Node
+from your_service_package.srv import TriggerStop  # Replace with your service type (adapt message fields if needed)
+
+
+class SignalListenerNode(Node):
+
+  def __init__(self):
+    super().__init__('signal_listener')
+    self.srv_server = self.create_service(TriggerStop, '/trigger_stop', self.service_callback)
+
+  def service_callback(self, request, response):
+    if request.stop_signal == 1:  # Check for the stop signal value (adapt if message fields differ)
+      self.get_logger().info('Received stop signal. Terminating launch.')
+      # Use a mechanism to terminate the launch (replace with your preferred method)
+      # Option 1: Using launch.shutdown (if launch API available)
+      import launch
+      launch.shutdown()
+
+      # Option 2: Using a custom ROS action server (example)
+      # action_client = self.create_client(CustomTerminateAction, '/terminate_launch')
+      # ... (send termination request to action server)
+
+      response.success = True  # Set service response (optional)
+      return response
+    else:
+      self.get_logger().info('Received signal, but not the stop value. Ignoring.')
+      response.success = False
+      return response
+
+def main():
+  rclpy.init()
+  signal_listener = SignalListenerNode()
+  rclpy.spin(signal_listener)  # Keep the node running to listen for service calls
+  rclpy.shutdown()
+
+if __name__ == '__main__':
+  main()
+
+import os
+from launch_ros.actions import Node
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from ament_index_python.packages import get_package_share_directory
+
+def generate_launch_description():
+
+  rosbot_description = get_package_share_directory('rosbot_description')
+  config_dir = os.path.join(rosbot_description, 'config')
+  params_file = os.path.join(config_dir, 'husarion_custom_param.yaml')
+  rviz_config_dir = os.path.join(config_dir, 'navigation_rviz')
+
+  # Define launch argument (optional, for potential future use with ROS message passing)
+  stop_signal_arg = DeclareLaunchArgument(
+      'stop_signal',
+      default_value='1',  # Set default value to trigger stop on receiving "1"
+      description='Signal value to stop the launch (optional)')
+
+  # Include other launch descriptions for robot nodes (navigation, etc.)
+  robot_nodes = IncludeLaunchDescription(
+      PythonLaunchDescriptionSource([rosbot_description, '/launch/navigation_docker.launch.py']),
+  )
+
+  # Signal listener node
+  signal_listener = Node(
+      package='your_package_name',  # Replace with the package containing the signal listener node
+      executable='signal_listener_node',  # Replace with the actual node name
+      name='signal_listener')
+
+  # Launch description
+  return LaunchDescription([
+      stop_signal_arg,  # Optional launch argument (uncomment if using message passing)
+      robot_nodes,
+      signal_listener,
+  ])
+
 import os
 from launch_ros.actions import Node
 from launch import LaunchDescription
