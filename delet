@@ -83,3 +83,36 @@ def main():
 
 if __name__ == '__main__':
   main()
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import PoseStamped
+
+class GoalPosePublisher(Node):
+
+  def __init__(self):
+    super().__init__('goal_pose_publisher')
+    self.goal_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)  # Queue size: 10 messages
+    self.timer = self.create_timer(1.0, self.publish_goal_pose)  # Publish every 1 second (adjust as needed)
+
+    # Define the goal pose
+    self.goal_pose = PoseStamped()
+    self.goal_pose.header.stamp.sec = 0  # Set timestamp to 0 seconds
+    self.goal_pose.header.frame_id = 'map'  # Set frame_id
+
+    self.goal_pose.pose.position.x = 2.3  # X coordinate of the goal (meters)
+    self.goal_pose.pose.position.y = 0.0  # Y coordinate of the goal (meters)
+    self.goal_pose.pose.position.z = 1.5  # Z coordinate of the goal (meters) (optional, often 0 for 2D)
+    self.goal_pose.pose.orientation.w = 0.9  # Quaternion for no rotation (w component)
+
+  def publish_goal_pose(self):
+    self.goal_pub.publish(self.goal_pose)
+    self.get_logger().info('Published goal pose.')
+
+def main():
+  rclpy.init()
+  goal_pose_publisher = GoalPosePublisher()
+  rclpy.spin(goal_pose_publisher)
+  rclpy.shutdown()
+
+if __name__ == '__main__':
+  main()
