@@ -116,3 +116,39 @@ def main():
 
 if __name__ == '__main__':
   main()
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import PoseStamped
+from nav2_msgs.srv import NavigateToPose
+from tf2_ros import TransformBroadcaster, TransformListener
+
+class RelativeGoalPublisher(Node):
+
+  def __init__(self):
+    super().__init__('relative_goal_publisher')
+    self.goal_pub = self.create_client(NavigateToPose, '/move_base')  # Service for sending navigation goals
+    self.tf_buffer = TransformListener(self)
+    self.tf_broadcaster = TransformBroadcaster(self)
+    self.timer = self.create_timer(1.0, self.get_initial_pose_and_send_goal)  # Timer to trigger actions
+
+    self.initial_pose_received = False  # Flag to indicate if initial pose is received
+    self.initial_pose = None  # Placeholder for initial pose
+
+    self.relative_x_offset = 1.0  # Desired X-axis offset (meters)
+
+  def get_initial_pose_and_send_goal(self):
+    if self.initial_pose_received:
+      return  # Skip if initial pose is already received and sent
+
+    # Get the robot's current pose in the map frame (assuming it's broadcasted)
+    try:
+      transform = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time())
+      self.initial_pose = transform.transform.translation
+      self.initial_pose_received = True
+      self.send_relative_goal()
+    except (LookupError, rclpy.exceptions.ROSInterruptException) as e:
+      self.get_logger().warn(f'Error getting initial pose: {e}')
+      self.initial_pose_received = False  # Reset flag on error
+
+  def send_relative_goal(self):
+    # ... (rest of the code for sending the relative goal pose remains the same)
