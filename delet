@@ -1,5 +1,35 @@
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import Int8
+
+class StopSignalPublisher(Node):
+
+  def __init__(self):
+    super().__init__('stop_signal_publisher')
+    self.pub = self.create_publisher(Int8, '/signal')  # Publisher for stop signal
+
+  def send_stop_signal(self):
+    msg = Int8()
+    msg.data = 1  # Set the data to the stop signal value
+    self.pub.publish(msg)
+    self.get_logger().info('Sent stop signal.')
+
+def main():
+  rclpy.init()
+  signal_publisher = StopSignalPublisher()
+  # Send the stop signal here (e.g., user input, timer)
+  signal_publisher.send_stop_signal()
+  rclpy.shutdown()
+
+if __name__ == '__main__':
+  main()
+
+
+
+
+
+import rclpy
+from rclpy.node import Node
 from your_service_package.srv import TriggerStop  # Replace with your service type (adapt message fields if needed)
 
 
