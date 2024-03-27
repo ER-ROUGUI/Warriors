@@ -1,3 +1,37 @@
+
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+
+class ImageSubscriber(Node):
+
+  def __init__(self):
+    super().__init__('image_subscriber')
+    self.sub = self.create_subscription(Image, 'video_frames', self.image_callback, 10)
+    self.br = CvBridge()
+
+  def image_callback(self, msg):
+    # Convert ROS image message to OpenCV image
+    cv_image = self.br.imgmsg_to_cv2(msg)
+
+    # Display the image
+    cv.imshow("Received Image", cv_image)
+    cv.waitKey(1)
+
+def main(args=None):
+  rclpy.init(args=args)
+  image_subscriber = ImageSubscriber()
+  rclpy.spin(image_subscriber)
+  rclpy.shutdown()
+
+if __name__ == '__main__':
+  main()
+
+
+
+
+
 import rclpy
 import cv2 as cv
 import sys
