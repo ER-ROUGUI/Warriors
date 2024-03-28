@@ -1,3 +1,16 @@
+orange@nuc-ros:/app/augmented-robots/server/nux_ws$ colcon build --packages-select rosbot_description 
+Starting >>> rosbot_description
+--- stderr: rosbot_description                         
+make: /home/orange/.local/lib/python3.8/site-packages/cmake/data/bin/cmake: No such file or directory
+make: *** [Makefile:294: cmake_check_build_system] Error 127
+---
+Failed   <<< rosbot_description [0.17s, exited with code 2]
+
+Summary: 0 packages finished [1.18s]
+  1 package failed: rosbot_description
+  1 package had stderr output: rosbot_description
+orange@nuc-ros:/app/augmented-robots/server/nux_ws$ 
+
 
 import rclpy
 from rclpy.node import Node
