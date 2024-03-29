@@ -1,3 +1,32 @@
+root@husarion:/# df -h
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          29G   27G   58M 100% /
+tmpfs            64M     0   64M   0% /dev
+tmpfs           1.7G     0  1.7G   0% /sys/fs/cgroup
+/dev/mmcblk0p2   29G   27G   58M 100% /etc/hosts
+tmpfs           1.7G     0  1.7G   0% /dev/shm
+
+
+docker pull osrf/ros:foxy-desktop
+
+
+
+failed to register layer: Error processing tar file(exit status 1): write /opt/ros/foxy/lib/python3.8/site-packages/qt_gui_cpp/libqt_gui_cpp_sip.so: no space left on device
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
