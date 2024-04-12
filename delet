@@ -425,3 +425,52 @@ def generate_launch_description():
         
     ),	
     ])
+
+
+
+
+import rclpy
+from geometry_msgs.msg import Odometry
+from tf2_ros.msg import TFMessage
+
+class OdomTfSubscriber(rclpy.Node):
+
+    def __init__(self):
+        super().__init__('odom_tf_subscriber')
+
+        self.odom_subscription = self.create_subscription(
+            Odometry, '/odom', self.odom_callback, 10
+        )
+        self.tf_subscription = self.create_subscription(
+            TFMessage, '/tf', self.tf_callback, 10
+        )
+
+    def odom_callback(self, msg: Odometry):
+        """Callback for /odom topic"""
+        print("Odom reçu :")
+        print(f"  x: {msg.pose.pose.position.x}")
+        print(f"  y: {msg.pose.pose.position.y}")
+        print(f"  z: {msg.pose.pose.position.z}")
+        print(f"  orientation (quaternion): {msg.pose.pose.orientation}")
+
+    def tf_callback(self, msg: TFMessage):
+        """Callback for /tf topic"""
+        print("TF reçu :")
+        for transform in msg.transforms:
+            print(f"  transform de {transform.header.frame_id} à {transform.child_frame_id}")
+            print(f"    translation: {transform.transform.translation}")
+            print(f"    rotation (quaternion): {transform.transform.rotation}")
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    node = OdomTfSubscriber()
+
+    rclpy.spin(node)
+
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
