@@ -1,3 +1,12 @@
+# Example commands to install RealSense SDK on Raspberry Pi
+echo "deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo buster main" | sudo tee /etc/apt/sources.list.d/realsense-public.list
+sudo apt-key adv --keyserver keys.gnupg.net --recv-key 6F3EFCDE
+sudo apt-get update
+sudo apt-get install librealsense2-dkms
+sudo apt-get install librealsense2-utils
+
+
+
 import pyrealsense2 as rs
 import numpy as np
 import cv2
