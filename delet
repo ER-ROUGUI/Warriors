@@ -1,6 +1,67 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+import cv2
+import numpy as np
+from cv_bridge import CvBridge
+from ultralytics import YOLO  # Ensure YOLOv8 or compatible version is installed
+
+class ImageSubscriberYOLO(Node):
+    def __init__(self):
+        super().__init__('image_subscriber_yolo')
+        self.subscription = self.create_subscription(
+            Image,
+            '/camera/color/image_raw',
+            self.image_callback,
+            10
+        )
+        self.bridge = CvBridge()
+        self.yolo_model = YOLO('/path/to/yolov8n.pt')  # Update path to your YOLO model file
+
+    def image_callback(self, msg):
+        # Convert ROS Image message to OpenCV image
+        cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+
+        # Process the image with YOLO
+        results = self.yolo_model(cv_image)
+
+        # Render detections
+        cv_image = self.render_detections(cv_image, results)
+
+        # Display the image using OpenCV
+        cv2.imshow('YOLO Detections', cv_image)
+        cv2.waitKey(1)
+
+    def render_detections(self, image, results):
+        # Draw bounding boxes and labels on the image
+        for result in results.xyxy[0]:  # results.xyxy[0] contains bbox coordinates
+            if result[-1] > 0.3:  # Confidence threshold
+                x1, y1, x2, y2, conf, cls_id = result
+                cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
+                cv2.putText(image, f'{self.yolo_model.names[int(cls_id)]} {conf:.2f}', 
+                            (int(x1), int(y1-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,0,0), 2)
+        return image
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ImageSubscriberYOLO()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+        cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    main()
+
+
+
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 import pyrealsense2 as rs
