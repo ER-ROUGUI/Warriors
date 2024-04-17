@@ -1,3 +1,45 @@
+import pyrealsense2 as rs
+import numpy as np
+import cv2
+
+def capture_and_save_image(filename='captured_image.png'):
+    # Configuration du pipeline de streaming
+    pipeline = rs.pipeline()
+    config = rs.config()
+
+    # Configurer pour utiliser la couleur de la caméra
+    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+    try:
+        # Démarrer le streaming
+        pipeline.start(config)
+
+        # Attendre que les images soient disponibles
+        for _ in range(30):
+            frames = pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            if color_frame:
+                # Convertir les images en tableau numpy
+                color_image = np.asanyarray(color_frame.get_data())
+
+                # Afficher l'image
+                cv2.imshow('RealSense', color_image)
+                cv2.waitKey(1)
+
+                # Enregistrer l'image
+                cv2.imwrite(filename, color_image)
+                print(f"Image saved as {filename}")
+                break
+
+    finally:
+        # Arrêter le streaming
+        pipeline.stop()
+        cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    capture_and_save_image()
+
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
