@@ -1,3 +1,197 @@
+with this subscriber from rs_launch 
+
+
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from geometry_msgs.msg import PointStamped
+import cv2
+import numpy as np
+from cv_bridge import CvBridge
+from ultralytics import YOLO
+import open3d as o3d 
+from ament_index_python.packages import get_package_share_directory
+import pyrealsense2 as rs
+import os
+
+
+# smart_robots_dir = get_package_share_directory("smart_robots_controller")
+# model_file = os.path.join(smart_robots_dir, "config", "yolov8n.pt")
+model_file = "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/config/yolov8n.pt"
+
+model = YOLO(model_file)
+class ImageSubscriber(Node):
+
+    def __init__(self):
+        super().__init__('image_subscriber_yolo_tb3')
+        self.image_sub = self.create_subscription(Image, '/camera/color/image_raw', self.image_callback, 10)
+        self.depth_sub = self.create_subscription(PointStamped, 'image/zDepth', self.zDepth_callback, 10)
+
+        self.bridge = CvBridge()
+
+        timer_period = 0.5
+
+        self.center_pub = self.create_publisher(PointStamped , '/image/center_coordinates' , 10)
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.i = 0
+        self.center_coordinates = []
+
+
+    
+
+    def image_callback(self, msg):
+        # global center_coordinates
+
+
+        np_arr = np.frombuffer(msg.data, dtype=np.uint8)
+        cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        results = model(cv_image)
+        results = model.predict(source=cv_image, show=False, stream=True, verbose=False) 
+
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+            # bounding box
+                #print(box.xyxy[0])
+                x1, y1, x2, y2 = box.xyxy[0]
+                confidence =box.conf[0]
+                cls = int(box.cls[0])
+
+                if model.names[cls] == "person" and confidence > 0.5 : # we can use door or window instead person !!!
+                    
+                    cv2.rectangle(cv_image , (int(x1),int(y1)) , (int(x2) , int(y2)) , (0,255,0) , 2)
+
+
+                    (x_center,y_center) = (x2 + x1)/2, (y2+y1)/2 
+                    center_coordinates = (int(x_center),int(y_center))
+
+                    try:
+                        
+                        # zDepth = None  #depth_frame.get_distance(int(x_center),int(y_center))
+                        print("Nothing just  ....." )
+
+                    except (AttributeError , NameError):
+                        print("Depth unavailable")
+
+                    
+                    # print(zDepth)
+
+                    # frame_center = (cv_image.shape[1]//2 ,cv_image.shape[0]//2)
+                    # error_x = center_coordinates[0] - frame_center[0]
+                    # error_y = center_coordinates[1] - frame_center[1]
+
+                    # self.center_coordinates.append(  (int(x_center) , int(y_center) ))
+
+                    # print(f"Error: x ={error_x} , y={error_y}")
+
+                    # center_msg = PointStamped()
+                    # center_msg.header.stamp = self.get_clock().now().to_msg()
+                    # center_msg.point.x = x_center
+                    # center_msg.point.y = y_center
+                    # self.center_pub.publish(center_msg)
+                    # self.get_logger().info(f"Center coordinates : ({x_center} , {y_center})")
+                    
+                    if center_coordinates is not None :
+            
+                        cv2.circle(cv_image, center_coordinates, 5, (0,0,255), 5)
+                
+               
+
+        cv2.imshow('RealSense Image subscriber', cv_image)
+        cv2.waitKey(1)
+
+    def timer_callback(self):
+
+
+        if len(self.center_coordinates)>0 :
+
+            x_center , y_center = self.center_coordinates[-1]
+
+            msg = PointStamped()
+            msg.header.stamp = self. get_clock().now().to_msg()
+            msg.point.x = float(x_center)
+            msg.point.y = float(y_center)
+
+            self.center_pub.publish(msg)
+            self.get_logger().info(f"Publishing center Coordinates: {msg.point.x} ,{msg.point.y}")
+            self.i += 1
+        else:
+            self.get_logger().info('No center Coordinates:')
+
+    def zDepth_callback(self ,msg):
+
+        msg = PointStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        # msg.point.z = float(x_center)
+        # x_center  =center_msg.point.x
+        # y_center =center_msg.point.y
+        zDepth  = msg.point.z
+
+        self.get_logger().info(f"Publishing zDepth value: {zDepth}")
+        
+
+ 
+
+
+
+def main():
+    rclpy.init()
+    node = ImageSubscriber()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+i get this erro 
+
+WARNING ⚠️ 'source' is missing. Using 'source=/usr/local/lib/python3.10/dist-packages/ultralytics/assets'.
+
+image 1/2 /usr/local/lib/python3.10/dist-packages/ultralytics/assets/bus.jpg: 640x480 4 persons, 1 bus, 1 stop sign, 130.4ms
+image 2/2 /usr/local/lib/python3.10/dist-packages/ultralytics/assets/zidane.jpg: 384x640 2 persons, 1 tie, 130.2ms
+Speed: 10.0ms preprocess, 130.3ms inference, 750.8ms postprocess per image at shape (1, 3, 384, 640)
+WARNING ⚠️ 'source' is missing. Using 'source=/usr/local/lib/python3.10/dist-packages/ultralytics/assets'.
+Nothing just  .....
+Nothing just  .....
+Nothing just  .....
+Nothing just  .....
+Nothing just  .....
+Traceback (most recent call last):
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_subscriber_yolo_tb3.py", line 143, in <module>
+    main()
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_subscriber_yolo_tb3.py", line 139, in main
+    rclpy.spin(node)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 222, in spin
+    executor.spin_once()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 739, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 736, in _spin_once_impl
+    raise handler.exception()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/task.py", line 239, in __call__
+    self._handler.send(None)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 437, in handler
+    await call_coroutine(entity, arg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 362, in _execute_subscription
+    await await_or_execute(sub.callback, msg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 107, in await_or_execute
+    return callback(*args)
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_subscriber_yolo_tb3.py", line 99, in image_callback
+    cv2.imshow('RealSense Image subscriber', cv_image)
+cv2.error: OpenCV(4.9.0) /io/opencv/modules/highgui/src/window.cpp:971: error: (-215:Assertion failed) size.width>0 && size.height>0 in function 'imshow'
+
+
+
+
+
+
+
+
+
+
+
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage
