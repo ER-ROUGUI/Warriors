@@ -1,3 +1,63 @@
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Float32  # Assuming bbox_center_x is published as a Float32
+
+class ObjectCenteringNode(Node):
+    def __init__(self):
+        super().__init__('object_centering')
+        self.publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
+        self.subscription = self.create_subscription(
+            Float32, 
+            'bbox_center_x', 
+            self.listener_callback, 
+            10
+        )
+        self.image_width = 640  # Example image width
+        self.bbox_center_x = None  # Will be updated by the subscriber
+
+    def listener_callback(self, msg):
+        self.bbox_center_x = msg.data
+        self.update_velocity()
+
+    def update_velocity(self):
+        if self.bbox_center_x is None:
+            return
+
+        twist = Twist()
+        error_x = self.bbox_center_x - (self.image_width / 2)
+
+        # Gain factor, adjust as necessary
+        k = 0.005  
+        twist.angular.z = -error_x * k
+
+        # Stop the robot if the error is small to avoid oscillation
+        if abs(error_x) > 50:
+            twist.linear.x = 0.1
+        else:
+            twist.linear.x = 0
+
+        self.publisher_.publish(twist)
+
+def main(args=None):
+    rclpy.init(args=args)
+    object_centering_node = ObjectCenteringNode()
+    try:
+        rclpy.spin(object_centering_node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        object_centering_node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
 camera:
   ros__parameters:
     camera_name: "camera"
