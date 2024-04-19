@@ -1,0 +1,42 @@
+import os
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription, TimerAction, DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    # Path to the RealSense launch file
+    realsense_pkg_share = FindPackageShare(package='realsense2_camera')
+    realsense_launch_file = PathJoinSubstitution([
+        realsense_pkg_share,
+        'launch',
+        'rs_launch.py'
+    ])
+
+    # Include RealSense camera launch
+    realsense_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(realsense_launch_file),
+        launch_arguments={'enable_depth': 'true', 'enable_color': 'true'}.items(),
+    )
+
+    # Delay for 5 seconds
+    delay = 5.0
+
+    # Node to be launched after the delay
+    subsequent_node = Node(
+        package='example_package',  # Replace with your package name
+        executable='example_node',  # Replace with your executable name
+        name='example_node',
+        output='screen'
+    )
+
+    # Define the launch description with a timer action
+    return LaunchDescription([
+        realsense_launch,
+        TimerAction(
+            period=delay,
+            actions=[subsequent_node]
+        )
+    ])
