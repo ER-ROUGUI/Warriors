@@ -1,3 +1,22 @@
+ros2 run navigation_turtlebot robot_bringup.py 
+Traceback (most recent call last):
+  File "/opt/ros/foxy/bin/ros2", line 11, in <module>
+    load_entry_point('ros2cli==0.9.13', 'console_scripts', 'ros2')()
+  File "/opt/ros/foxy/lib/python3.8/site-packages/ros2cli/cli.py", line 67, in main
+    rc = extension.main(parser=parser, args=args)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/ros2run/command/run.py", line 70, in main
+    return run_executable(path=path, argv=args.argv, prefix=prefix)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/ros2run/api/__init__.py", line 61, in run_executable
+    process = subprocess.Popen(cmd)
+  File "/usr/lib/python3.8/subprocess.py", line 858, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/usr/lib/python3.8/subprocess.py", line 1704, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+OSError: [Errno 8] Exec format error: '/app/augmented-robots/server/nux_ws/install/navigation_turtlebot/lib/navigation_turtlebot/robot_bringup.py'
+
+
+
+
 import rclpy
 from rclpy.node import Node
 import subprocess
