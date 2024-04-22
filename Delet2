@@ -1,3 +1,37 @@
+import rclpy
+from rclpy.node import Node
+import subprocess
+
+class RobotBringup(Node):
+    def __init__(self):
+        super().__init__('robot_bringup')
+        # Parameters for SSH command
+        self.robot_hostname = '192.168.1.21'  # IP address of the robot
+        self.robot_user = 'turtlebot'         # Username for SSH to the robot
+
+        self.bring_up_robot()
+
+    def bring_up_robot(self):
+        try:
+            # SSH command to start robot launch file
+            command = f"ssh {self.robot_user}@{self.robot_hostname} 'source /opt/ros/foxy/setup.bash && ros2 launch turtlebot3_bringup robot.launch.py'"
+            subprocess.run(command, shell=True, check=True)
+            self.get_logger().info("Robot bringup initiated successfully.")
+        except subprocess.CalledProcessError as e:
+            self.get_logger().error(f"Failed to start robot: {str(e)}")
+
+def main(args=None):
+    rclpy.init(args=args)
+    robot_bringup = RobotBringup()
+    rclpy.spin(robot_bringup)
+    robot_bringup.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, OpaqueFunction
