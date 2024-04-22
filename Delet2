@@ -1,46 +1,6 @@
 ros2 run navigation_turtlebot robot_bringup.py 
-turtlebot@192.168.1.21's password: 
-[INFO] [launch]: All log files can be found below /home/ubuntu/.ros/log/2024-04-22-07-39-03-360160-turtle-1691
-[INFO] [launch]: Default logging verbosity is set to INFO
-Task exception was never retrieved
-future: <Task finished name='Task-2' coro=<LaunchService._process_one_event() done, defined at /opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py:226> exception=InvalidLaunchFileError('py')>
-Traceback (most recent call last):
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/any_launch_file_utilities.py", line 53, in get_launch_description_from_any_launch_file
-    return loader(launch_file_path)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/python_launch_file_utilities.py", line 68, in get_launch_description_from_python_launch_file
-    return getattr(launch_file_module, 'generate_launch_description')()
-  File "/opt/ros/foxy/share/turtlebot3_bringup/launch/robot.launch.py", line 32, in generate_launch_description
-    TURTLEBOT3_MODEL = os.environ['TURTLEBOT3_MODEL']
-  File "/usr/lib/python3.8/os.py", line 675, in __getitem__
-    raise KeyError(key) from None
-KeyError: 'TURTLEBOT3_MODEL'
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 228, in _process_one_event
-    await self.__process_event(next_event)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 248, in __process_event
-    visit_all_entities_and_collect_futures(entity, self.__context))
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 45, in visit_all_entities_and_collect_futures
-    futures_to_return += visit_all_entities_and_collect_futures(sub_entity, context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 45, in visit_all_entities_and_collect_futures
-    futures_to_return += visit_all_entities_and_collect_futures(sub_entity, context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 38, in visit_all_entities_and_collect_futures
-    sub_entities = entity.visit(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/action.py", line 108, in visit
-    return self.execute(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/actions/include_launch_description.py", line 130, in execute
-    launch_description = self.__launch_description_source.get_launch_description(context)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_source.py", line 84, in get_launch_description
-    self._get_launch_description(self.__expanded_location)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/any_launch_description_source.py", line 53, in _get_launch_description
-    return get_launch_description_from_any_launch_file(location)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/any_launch_file_utilities.py", line 56, in get_launch_description_from_any_launch_file
-    raise InvalidLaunchFileError(extension, likely_errors=exceptions)
-launch.invalid_launch_file_error.InvalidLaunchFileError: Caught exception when trying to load file of format [py]: 'TURTLEBOT3_MODEL'
-[ERROR] [1713771543.934012901] [robot_bringup]: Failed to start robot: Command 'ssh turtlebot@192.168.1.21 'source /opt/ros/foxy/setup.bash && ros2 launch turtlebot3_bringup robot.launch.py'' returned non-zero exit status 1.
-
+/bin/sh: 1: Syntax error: Unterminated quoted string
+[ERROR] [1713771776.866016494] [robot_bringup]: Failed to start robot: Command 'ssh turtlebot@192.168.1.21 'export TURTLEBOT3_MODEL=waffle && 'source /opt/ros/foxy/setup.bash && ros2 launch turtlebot3_bringup robot.launch.py'' returned non-zero exit status 2.
 
 
 
