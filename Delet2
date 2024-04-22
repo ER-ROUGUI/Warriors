@@ -1,70 +1,27 @@
-#! /usr/bin/env python3
-import rclpy
-from rclpy.node import Node
-import subprocess
-
-class RobotBringup(Node):
-    def __init__(self):
-        super().__init__('robot_bringup')
-        # SSH command
-        self.robot_hostname = '192.168.1.21'  
-        self.robot_user = 'turtlebot' 
-        self.password = 'niceiam21!'
-        self.model = 'waffle' 
-        self.launch_file = 'ros2 launch turtlebot3_bringup robot.launch.py'  
-
-        self.bring_up_robot()
-
-    def bring_up_robot(self):
-
-        command = (
-                # f"sshpass -p '{self.password}' ssh -o StrictHostKeyChecking=no "
-                f"ssh {self.robot_user}@{self.robot_hostname} "
-                "'echo Hello world;' "
-                f"'source /opt/ros/foxy/setup.bash; source ~/.bashrc; export TURTLEBOT3_MODEL={self.model}'; ros2 launch turtlebot3_bringup robot.launch.py"
-                # f"'export TURTLEBOT3_MODEL={self.model} && "
-                # f"source /opt/ros/foxy/setup.bash &&"
-                # f"ros2 launch turtlebot3_bringup robot.launch.py"
-        )
-        try:
-            subprocess.run(command, shell=True, check=True)
-            self.get_logger().info("Robot bringup initiated successfully.")
-        except subprocess.CalledProcessError as e:
-            self.get_logger().error(f"Failed to start robot: {str(e)}")
-
-def main(args=None):
-    rclpy.init(args=args)
-    robot_bringup = RobotBringup()
-    rclpy.spin(robot_bringup)
-    robot_bringup.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
-
-ros2 run navigation_turtlebot robot_bringup.py 
+ ros2 run navigation_turtlebot robot_bringup.py 
 turtlebot@192.168.1.21's password: 
 Hello world
-[INFO] [launch]: All log files can be found below /home/orange/.ros/log/2024-04-22-10-30-00-477347-nuc-ros-36547
+[INFO] [launch]: All log files can be found below /home/orange/.ros/log/2024-04-22-10-35-35-740275-nuc-ros-38223
 [INFO] [launch]: Default logging verbosity is set to INFO
 urdf_file_name : turtlebot3_waffle.urdf
-[INFO] [robot_state_publisher-1]: process started with pid [36549]
-[INFO] [hlds_laser_publisher-2]: process started with pid [36551]
-[INFO] [turtlebot3_ros-3]: process started with pid [36553]
-[hlds_laser_publisher-2] [INFO] [1713774600.567356109] [hlds_laser_publisher]: Init hlds_laser_publisher Node Main
-[hlds_laser_publisher-2] [INFO] [1713774600.567604751] [hlds_laser_publisher]: port : /dev/ttyUSB0 frame_id : base_scan
-[turtlebot3_ros-3] [INFO] [1713774600.570609466] [turtlebot3_node]: Init TurtleBot3 Node Main
-[turtlebot3_ros-3] [INFO] [1713774600.570739251] [turtlebot3_node]: Init DynamixelSDKWrapper
-[turtlebot3_ros-3] [ERROR] [1713774600.570777669] [DynamixelSDKWrapper]: Failed to open the port(/dev/ttyACM0)!
-[turtlebot3_ros-3] [ERROR] [1713774600.570781501] [DynamixelSDKWrapper]: Failed to initialize SDK handlers
-[turtlebot3_ros-3] [ERROR] [1713774600.570791333] [turtlebot3_node]: Failed connection with Devices
-[turtlebot3_ros-3] [INFO] [1713774600.571036391] [turtlebot3_node]: Add Motors
+[INFO] [robot_state_publisher-1]: process started with pid [38230]
+[INFO] [hlds_laser_publisher-2]: process started with pid [38232]
+[INFO] [turtlebot3_ros-3]: process started with pid [38234]
+[hlds_laser_publisher-2] [INFO] [1713774935.830660788] [hlds_laser_publisher]: Init hlds_laser_publisher Node Main
+[hlds_laser_publisher-2] [INFO] [1713774935.830720290] [hlds_laser_publisher]: port : /dev/ttyUSB0 frame_id : base_scan
+[turtlebot3_ros-3] [INFO] [1713774935.834543846] [turtlebot3_node]: Init TurtleBot3 Node Main
+[turtlebot3_ros-3] [INFO] [1713774935.834699026] [turtlebot3_node]: Init DynamixelSDKWrapper
+[turtlebot3_ros-3] [ERROR] [1713774935.834740390] [DynamixelSDKWrapper]: Failed to open the port(/dev/ttyACM0)!
+[turtlebot3_ros-3] [ERROR] [1713774935.834744714] [DynamixelSDKWrapper]: Failed to initialize SDK handlers
+[turtlebot3_ros-3] [ERROR] [1713774935.834756214] [turtlebot3_node]: Failed connection with Devices
 [turtlebot3_ros-3] [PortHandlerLinux::SetupPort] Error opening serial port!
-[turtlebot3_ros-3] [INFO] [1713774600.571073302] [turtlebot3_node]: Add Wheels
-[turtlebot3_ros-3] [INFO] [1713774600.571094983] [turtlebot3_node]: Add Sensors
+[ERROR] [hlds_laser_publisher-2]: process has died [pid 38232, exit code 255, cmd '/home/orange/API4Robot/catkin_ws/install/hls_lfcd_lds_driver/lib/hls_lfcd_lds_driver/hlds_laser_publisher --ros-args -r __node:=hlds_laser_publisher --params-file /tmp/launch_params_czfxlx14'].
+[turtlebot3_ros-3] [INFO] [1713774935.834977800] [turtlebot3_node]: Add Motors
+[turtlebot3_ros-3] [INFO] [1713774935.835017870] [turtlebot3_node]: Add Wheels
+[turtlebot3_ros-3] [INFO] [1713774935.835045178] [turtlebot3_node]: Add Sensors
+[robot_state_publisher-1] Parsing robot urdf xml string.
 [turtlebot3_ros-3] terminate called after throwing an instance of 'rclcpp::exceptions::RCLError'
 [turtlebot3_ros-3]   what():  could not create publisher: rcl node's context is invalid, at /tmp/binarydeb/ros-foxy-rcl-1.1.14/src/rcl/node.c:441
-[robot_state_publisher-1] Parsing robot urdf xml string.
 [robot_state_publisher-1] Link base_link had 7 children
 [robot_state_publisher-1] Link camera_link had 2 children
 [robot_state_publisher-1] Link camera_depth_frame had 1 children
@@ -77,18 +34,17 @@ urdf_file_name : turtlebot3_waffle.urdf
 [robot_state_publisher-1] Link base_scan had 0 children
 [robot_state_publisher-1] Link wheel_left_link had 0 children
 [robot_state_publisher-1] Link wheel_right_link had 0 children
-[robot_state_publisher-1] [INFO] [1713774600.573210255] [robot_state_publisher]: got segment base_footprint
-[robot_state_publisher-1] [INFO] [1713774600.573273028] [robot_state_publisher]: got segment base_link
-[robot_state_publisher-1] [INFO] [1713774600.573279864] [robot_state_publisher]: got segment base_scan
-[robot_state_publisher-1] [INFO] [1713774600.573283966] [robot_state_publisher]: got segment camera_depth_frame
-[robot_state_publisher-1] [INFO] [1713774600.573287769] [robot_state_publisher]: got segment camera_depth_optical_frame
-[robot_state_publisher-1] [INFO] [1713774600.573291566] [robot_state_publisher]: got segment camera_link
-[robot_state_publisher-1] [INFO] [1713774600.573295089] [robot_state_publisher]: got segment camera_rgb_frame
-[robot_state_publisher-1] [INFO] [1713774600.573298731] [robot_state_publisher]: got segment camera_rgb_optical_frame
-[robot_state_publisher-1] [INFO] [1713774600.573304805] [robot_state_publisher]: got segment caster_back_left_link
-[robot_state_publisher-1] [INFO] [1713774600.573308513] [robot_state_publisher]: got segment caster_back_right_link
-[robot_state_publisher-1] [INFO] [1713774600.573312111] [robot_state_publisher]: got segment imu_link
-[robot_state_publisher-1] [INFO] [1713774600.573315906] [robot_state_publisher]: got segment wheel_left_link
-[robot_state_publisher-1] [INFO] [1713774600.573321679] [robot_state_publisher]: got segment wheel_right_link
-[ERROR] [hlds_laser_publisher-2]: process has died [pid 36551, exit code 255, cmd '/home/orange/API4Robot/catkin_ws/install/hls_lfcd_lds_driver/lib/hls_lfcd_lds_driver/hlds_laser_publisher --ros-args -r __node:=hlds_laser_publisher --params-file /tmp/launch_params_43aa_1ky'].
-[ERROR] [turtlebot3_ros-3]: process has died [pid 36553, exit code -6, cmd '/home/orange/API4Robot/catkin_ws/install/turtlebot3_node/lib/turtlebot3_node/turtlebot3_ros -i /dev/ttyACM0 --ros-args --params-file /home/orange/API4Robot/catkin_ws/install/turtlebot3_bringup/share/turtlebot3_bringup/param/waffle.yaml'].
+[robot_state_publisher-1] [INFO] [1713774935.835713622] [robot_state_publisher]: got segment base_footprint
+[robot_state_publisher-1] [INFO] [1713774935.835770247] [robot_state_publisher]: got segment base_link
+[robot_state_publisher-1] [INFO] [1713774935.835780007] [robot_state_publisher]: got segment base_scan
+[robot_state_publisher-1] [INFO] [1713774935.835787547] [robot_state_publisher]: got segment camera_depth_frame
+[robot_state_publisher-1] [INFO] [1713774935.835794023] [robot_state_publisher]: got segment camera_depth_optical_frame
+[robot_state_publisher-1] [INFO] [1713774935.835798332] [robot_state_publisher]: got segment camera_link
+[robot_state_publisher-1] [INFO] [1713774935.835802036] [robot_state_publisher]: got segment camera_rgb_frame
+[robot_state_publisher-1] [INFO] [1713774935.835805869] [robot_state_publisher]: got segment camera_rgb_optical_frame
+[robot_state_publisher-1] [INFO] [1713774935.835809806] [robot_state_publisher]: got segment caster_back_left_link
+[robot_state_publisher-1] [INFO] [1713774935.835813635] [robot_state_publisher]: got segment caster_back_right_link
+[robot_state_publisher-1] [INFO] [1713774935.835817302] [robot_state_publisher]: got segment imu_link
+[robot_state_publisher-1] [INFO] [1713774935.835821052] [robot_state_publisher]: got segment wheel_left_link
+[robot_state_publisher-1] [INFO] [1713774935.835824738] [robot_state_publisher]: got segment wheel_right_link
+[ERROR] [turtlebot3_ros-3]: process has died [pid 38234, exit code -6, cmd '/home/orange/API4Robot/catkin_ws/install/turtlebot3_node/lib/turtlebot3_node/turtlebot3_ros -i /dev/ttyACM0 --ros-args --params-file /home/orange/API4Robot/catkin_ws/install/turtlebot3_bringup/share/turtlebot3_bringup/param/waffle.yaml'].
