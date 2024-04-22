@@ -1,3 +1,144 @@
+
+WHEN I LAUNCH THIS 
+
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription , DeclareLaunchArgument , ExecuteProcess ,TimerAction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration , command
+
+
+def generate_launch_description():
+    config_dir = os.path.join(get_package_share_directory('navigation_turtlebot'),'config')
+    map_file = os.path.join(config_dir,'couloire.yaml')
+    param_file = os.path.join(config_dir,'tb3_nav2_params.yaml')
+    rviz_config_dir = os.path.join(config_dir,'nav_tb3.rviz')
+    amcl_param_file =os.path.join(config_dir , 'tb3_nav2_params.yaml')
+
+    robot_hostname = LaunchConfiguration('robot_hostname' , default='192.168.1.21')
+    robot_user = LaunchConfiguration('robot_user' , default='turtlebot')
+
+    return LaunchDescription([
+
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false',
+            description='use simulation gazebo clock if true'
+        ),
+  
+
+
+        ExecuteProcess( cmd=['ssh' ,command([robot_user, '@' , robot_hostname]), 'source /opt/ros/foxy/setup.bash && ros2 launch turtlebot3_bringup robot.launch.py']
+
+
+        ),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('nav2_bringup'),'/launch','/bringup_launch.py']),
+            launch_arguments={
+            'map':map_file,
+            'params_file': param_file}.items(),
+
+        ),
+
+
+    Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2_node',
+        arguments=['-d', rviz_config_dir],
+        output='screen'
+
+        ),
+    Node(
+    package='nav2_amcl',
+    executable='amcl',
+    name='amcl',
+    parameters = [amcl_param_file, {'use_sim_time' : LaunchConfiguration('use_sim_time')}],
+
+    output='screen'
+
+    ),
+
+    # lifecycle manager >>>> to localize the robot
+    ExecuteProcess(
+        cmd=['ros2' , 'run' , 'nav2_util', 'lifecycle_bringup', 'amcl']
+    )
+    ])
+
+
+I GET THIS ERROR 
+
+ros2 launch navigation_turtlebot navigation_tb3.launch.py 
+[INFO] [launch]: All log files can be found below /home/orange/.ros/log/2024-04-22-09-15-23-143690-nuc-ros-10684
+[INFO] [launch]: Default logging verbosity is set to INFO
+Task exception was never retrieved
+future: <Task finished name='Task-2' coro=<LaunchService._process_one_event() done, defined at /opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py:226> exception=InvalidLaunchFileError('py')>
+Traceback (most recent call last):
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/any_launch_file_utilities.py", line 53, in get_launch_description_from_any_launch_file
+    return loader(launch_file_path)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/python_launch_file_utilities.py", line 68, in get_launch_description_from_python_launch_file
+    return getattr(launch_file_module, 'generate_launch_description')()
+  File "/app/augmented-robots/server/nux_ws/install/navigation_turtlebot/share/navigation_turtlebot/launch/navigation_tb3.launch.py", line 30, in generate_launch_description
+    ExecuteProcess( cmd=['ssh' ,command([robot_user, '@' , robot_hostname]), 'source /opt/ros/foxy/setup.bash && ros2 launch turtlebot3_bringup robot.launch.py']
+TypeError: 'module' object is not callable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 228, in _process_one_event
+    await self.__process_event(next_event)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_service.py", line 248, in __process_event
+    visit_all_entities_and_collect_futures(entity, self.__context))
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 45, in visit_all_entities_and_collect_futures
+    futures_to_return += visit_all_entities_and_collect_futures(sub_entity, context)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 45, in visit_all_entities_and_collect_futures
+    futures_to_return += visit_all_entities_and_collect_futures(sub_entity, context)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/utilities/visit_all_entities_and_collect_futures_impl.py", line 38, in visit_all_entities_and_collect_futures
+    sub_entities = entity.visit(context)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/action.py", line 108, in visit
+    return self.execute(context)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/actions/include_launch_description.py", line 130, in execute
+    launch_description = self.__launch_description_source.get_launch_description(context)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_source.py", line 84, in get_launch_description
+    self._get_launch_description(self.__expanded_location)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/any_launch_description_source.py", line 53, in _get_launch_description
+    return get_launch_description_from_any_launch_file(location)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/launch/launch_description_sources/any_launch_file_utilities.py", line 56, in get_launch_description_from_any_launch_file
+    raise InvalidLaunchFileError(extension, likely_errors=exceptions)
+launch.invalid_launch_file_error.InvalidLaunchFileError: Caught exception when trying to load file of format [py]: 'module' object is not callable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import os
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, TimerAction, DeclareLaunchArgument
