@@ -1,3 +1,47 @@
+this 
+#! /usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+import subprocess
+
+class RobotBringup(Node):
+    def __init__(self):
+        super().__init__('robot_bringup')
+        # SSH command
+        self.robot_hostname = '192.168.1.21'  
+        self.robot_user = 'turtlebot' 
+        self.password = 'niceiam21!'
+        self.model = 'waffle'   
+
+        self.bring_up_robot()
+
+    def bring_up_robot(self):
+
+        command = (
+                f"sshpass -p {self.password} ssh -o StrictHostKeyChecking=no "
+                f"ssh {self.robot_user}@{self.robot_hostname} "
+                "'echo Hello world "
+                # f"'export TURTLEBOT3_MODEL={self.model} && "
+                # f"source /opt/ros/foxy/setup.bash &&"
+                # f"ros2 launch turtlebot3_bringup robot.launch.py"
+        )
+        try:
+            subprocess.run(command, shell=True, check=True)
+            self.get_logger().info("Robot bringup initiated successfully.")
+        except subprocess.CalledProcessError as e:
+            self.get_logger().error(f"Failed to start robot: {str(e)}")
+
+def main(args=None):
+    rclpy.init(args=args)
+    robot_bringup = RobotBringup()
+    rclpy.spin(robot_bringup)
+    robot_bringup.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+give me this error 
 ros2 run navigation_turtlebot robot_bringup.py 
-hostname contains invalid characters
-[ERROR] [1713772490.522013860] [robot_bringup]: Failed to start robot: Command 'ssh turtlebot@192.168.1.21'echo Hello world;export TURTLEBOT3_MODEL=waffle ;echo $TURTLEBOT3_MODEL'' returned non-zero exit status 255.
+/bin/sh: 1: Syntax error: Unterminated quoted string
+[ERROR] [1713773332.281247815] [robot_bringup]: Failed to start robot: Command 'sshpass -p niceiam21! ssh -o StrictHostKeyChecking=no ssh turtlebot@192.168.1.21 'echo Hello world; ' returned non-zero exit status 2.
+
