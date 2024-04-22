@@ -1,4 +1,47 @@
- ros2 run navigation_turtlebot robot_bringup.py 
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+import cv2
+
+class ImagePublisher(Node):
+    def __init__(self):
+        super().__init__('image_publisher')
+        self.publisher_ = self.create_publisher(Image, 'camera/image', 10)
+        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.bridge = CvBridge()
+        self.cap = cv2.VideoCapture(0)  # Initialize the video capture object
+
+    def timer_callback(self):
+        ret, frame = self.cap.read()
+        if ret:
+            # Convert the image to JPEG format with reduced quality to control bandwidth
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 70]  # Adjust the quality here
+            result, encimg = cv2.imencode('.jpg', frame, encode_param)
+            if result:
+                # Convert JPEG image back to OpenCV format before publishing
+                frame = cv2.imdecode(encimg, 1)
+            msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
+            self.publisher_.publish(msg)
+            self.get_logger().info('Publishing video frame')
+
+def main(args=None):
+    rclpy.init(args=args)
+    image_publisher = ImagePublisher()
+    rclpy.spin(image_publisher)
+    image_publisher.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+ros2 run navigation_turtlebot robot_bringup.py 
 turtlebot@192.168.1.21's password: 
 Hello world
 [INFO] [launch]: All log files can be found below /home/orange/.ros/log/2024-04-22-10-35-35-740275-nuc-ros-38223
