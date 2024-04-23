@@ -1,1 +1,3 @@
 [component_container_isolated-1] [INFO] [1713856754.060016240] [local_costmap.local_costmap]: Timed out waiting for transform from base_link to odom to become available, tf error: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+
+https://navigation.ros.org/setup_guides/odom/setup_odom.html
