@@ -1,3 +1,78 @@
+from launch import LaunchDescription
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, LaunchConfiguration
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from ament_index_python.packages import get_package_share_directory
+
+def generate_launch_description():
+    # Define the package directory
+    rosbot_pkg_dir = get_package_share_directory('rosbot_description')
+    nav2_pkg_dir = get_package_share_directory('nav2_bringup')
+    map_dir = get_package_share_directory('your_package_name')  # Directory where your map file is located
+
+    # Map and parameter file paths
+    map_file = LaunchConfiguration('map')
+    param_file = LaunchConfiguration('params')
+
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'map',
+            default_value=[map_dir, '/path/to/your/map.yaml'],
+            description='Full path to the map file to load'),
+
+        DeclareLaunchArgument(
+            'params',
+            default_value=[nav2_pkg_dir, '/path/to/your/nav2_params.yaml'],
+            description='Full path to the navigation2 parameters file'),
+
+        # Joint State Publisher
+        Node(
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            name='joint_state_publisher',
+            parameters=[{'use_sim_time': True}],
+        ),
+
+        # Robot State Publisher
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            output='screen',
+            parameters=[{'use_sim_time': True}],
+            arguments=[PathJoinSubstitution([rosbot_pkg_dir, 'urdf', 'rosbot.urdf'])],
+        ),
+
+        # Navigation2 bringup
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([nav2_pkg_dir, '/launch/navigation_launch.py']),
+            launch_arguments={
+                'map': map_file,
+                'use_sim_time': 'true',
+                'params_file': param_file
+            }.items()
+        ),
+        
+        # AMCL Node for localization
+        Node(
+            package='nav2_amcl',
+            executable='amcl',
+            name='amcl',
+            output='screen',
+            parameters=[{
+                'use_sim_time': True,
+                'odom_frame_id': 'odom',
+                'map_topic': 'map',
+                'base_frame_id': 'base_link',
+                'global_frame_id': 'map',
+                'scan_topic': 'scan',  # Ensure your LIDAR data is published on this topic
+ 
+
+
+
+
+
 
     
       
