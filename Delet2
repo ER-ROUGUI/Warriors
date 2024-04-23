@@ -1,8 +1,1 @@
-
-
-
-[component_container_isolated-1] [WARN] [1713855709.469772447] [local_costmap.local_costmap]: Sensor origin at (-0.01, -109033013014573593172309653446879622420447348096838152755745490913423777397759204992611208574524624410621033296358065714275751478748535829219840535370779110408192.00) is out of map bounds (-1.45, -90838558310.40) to (1.52, -90838558307.42). The costmap cannot raytrace for it.
-[component_container_isolated-1] [WARN] [1713855709.470311844] [local_costmap.local_costmap]: Sensor origin at (-0.01, -109033013014573593172309653446879622420447348096838152755745490913423777397759204992611208574524624410621033296358065714275751478748535829219840535370779110408192.00 0.13) is out of map bounds (-1.45, -90838558310.40, 0.00) to (1.52, -90838558307.42, 0.78). The costmap cannot raytrace for it.
-[rviz2-2] [INFO] [1713855709.498629965] [rviz2_node]: Message Filter dropping message: frame 'odom' at time 1713855703.470 for reason 'discarding message because the queue is full'
-[rviz2-2] [INFO] [1713855709.498912436] [rviz2_node]: Message Filter dropping message: frame 'odom' at time 1713855700.285 for reason 'discarding message because the queue is full'
-[component_container_isolated-1] [WARN] [1713855709.668843771] [nav2_costmap_2d]: Robot is out of bounds of the costmap
+[component_container_isolated-1] [INFO] [1713856754.060016240] [local_costmap.local_costmap]: Timed out waiting for transform from base_link to odom to become available, tf error: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
