@@ -1,143 +1,79 @@
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
-from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, LaunchConfiguration
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from ament_index_python.packages import get_package_share_directory
-
-def generate_launch_description():
-    # Define the package directory
-    rosbot_pkg_dir = get_package_share_directory('rosbot_description')
-    nav2_pkg_dir = get_package_share_directory('nav2_bringup')
-    map_dir = get_package_share_directory('your_package_name')  # Directory where your map file is located
-
-    # Map and parameter file paths
-    map_file = LaunchConfiguration('map')
-    param_file = LaunchConfiguration('params')
-
-    return LaunchDescription([
-        DeclareLaunchArgument(
-            'map',
-            default_value=[map_dir, '/path/to/your/map.yaml'],
-            description='Full path to the map file to load'),
-
-        DeclareLaunchArgument(
-            'params',
-            default_value=[nav2_pkg_dir, '/path/to/your/nav2_params.yaml'],
-            description='Full path to the navigation2 parameters file'),
-
-        # Joint State Publisher
-        Node(
-            package='joint_state_publisher',
-            executable='joint_state_publisher',
-            name='joint_state_publisher',
-            parameters=[{'use_sim_time': True}],
-        ),
-
-        # Robot State Publisher
-        Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            name='robot_state_publisher',
-            output='screen',
-            parameters=[{'use_sim_time': True}],
-            arguments=[PathJoinSubstitution([rosbot_pkg_dir, 'urdf', 'rosbot.urdf'])],
-        ),
-
-        # Navigation2 bringup
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([nav2_pkg_dir, '/launch/navigation_launch.py']),
-            launch_arguments={
-                'map': map_file,
-                'use_sim_time': 'true',
-                'params_file': param_file
-            }.items()
-        ),
-        
-        # AMCL Node for localization
-        Node(
-            package='nav2_amcl',
-            executable='amcl',
-            name='amcl',
-            output='screen',
-            parameters=[{
-                'use_sim_time': True,
-                'odom_frame_id': 'odom',
-                'map_topic': 'map',
-                'base_frame_id': 'base_link',
-                'global_frame_id': 'map',
-                'scan_topic': 'scan',  # Ensure your LIDAR data is published on this topic
- 
+take this code and add a subscriber to /amcl_pose and take those cordinate make it in place of initial_pose = PoseStamped()
+    initial_pose.header.frame_id = 'map'
+    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
+    initial_pose.pose.position.x = 0.448
+    initial_pose.pose.position.y = -1.13
+    initial_pose.pose.orientation.z = -0.28
+    initial_pose.pose.orientation.w = 0.95
 
 
 
+from geometry_msgs.msg import PoseStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+import rclpy
 
 
+## just for testing
 
-    
-      
-      
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
-from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, LaunchConfiguration
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from ament_index_python.packages import get_package_share_directory
 
-def generate_launch_description():
-    # Define the package directory
-    rosbot_pkg_dir = get_package_share_directory('rosbot_description')
-    nav2_pkg_dir = get_package_share_directory('nav2_bringup')
-    map_dir = get_package_share_directory('your_package_name')  # Directory where your map file is located
+def main():
+    rclpy.init()
 
-    # Map and parameter file paths
-    map_file = LaunchConfiguration('map')
-    param_file = LaunchConfiguration('params')
+    navigator = BasicNavigator()
 
-    return LaunchDescription([
-        DeclareLaunchArgument(
-            'map',
-            default_value=[map_dir, '/path/to/your/map.yaml'],
-            description='Full path to the map file to load'),
+    # Set our demo's initial pose
+    initial_pose = PoseStamped()
+    initial_pose.header.frame_id = 'map'
+    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
+    initial_pose.pose.position.x = 0.448
+    initial_pose.pose.position.y = -1.13
+    initial_pose.pose.orientation.z = -0.28
+    initial_pose.pose.orientation.w = 0.95
+    # navigator.setInitialPose(initial_pose)
 
-        DeclareLaunchArgument(
-            'params',
-            default_value=[nav2_pkg_dir, '/path/to/your/nav2_params.yaml'],
-            description='Full path to the navigation2 parameters file'),
+    navigator.waitUntilNav2Active()
 
-        # Launch the robot description
-        Node(
-            package='rosbot_description',
-            executable='robot_state_publisher',
-            name='robot_state_publisher',
-            output='screen',
-            parameters=[{'use_sim_time': True}],
-            arguments=[PathJoinSubstitution([rosbot_pkg_dir, 'urdf', 'rosbot.urdf'])]
-        ),
+    goal_pose = PoseStamped()
+    goal_pose.header.frame_id = 'map'
+    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
+    goal_pose.pose.position.x = 1.0
+    goal_pose.pose.position.y = -2.0
+    goal_pose.pose.orientation.w = 0.95
 
-        # Navigation2 bringup
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([nav2_pkg_dir, '/launch/navigation_launch.py']),
-            launch_arguments={
-                'map': map_file,
-                'use_sim_time': 'true',
-                'params_file': param_file
-            }.items()
-        ),
-        
-        # AMCL Node for localization
-        Node(
-            package='nav2_amcl',
-            executable='amcl',
-            name='amcl',
-            output='screen',
-            parameters=[{
-                'use_sim_time': True,
-                'odom_frame_id': 'odom',
-                'map_topic': 'map',
-                'base_frame_id': 'base_link',
-                'global_frame_id': 'map',
-                'scan_topic': 'scan',  # Ensure your LIDAR data is published on this topic
-            }]
-        )
-    ])
+    path = navigator.getPath(initial_pose, goal_pose)
+    smoothed_path = navigator.smoothPath(path)
+
+    # Follow path
+    navigator.followPath(smoothed_path)
+
+    i = 0
+    while not navigator.isTaskComplete():
+
+        i += 1
+        feedback = navigator.getFeedback()
+        if feedback and i % 5 == 0:
+            print(
+                'Estimated distance remaining to goal position: '
+                + '{0:.3f}'.format(feedback.distance_to_goal)
+                + '\nCurrent speed of the robot: '
+                + '{0:.3f}'.format(feedback.speed)
+            )
+
+    # Do something depending on the return code
+    result = navigator.getResult()
+    if result == TaskResult.SUCCEEDED:
+        print('Goal succeeded!')
+    elif result == TaskResult.CANCELED:
+        print('Goal was canceled!')
+    elif result == TaskResult.FAILED:
+        print('Goal failed!')
+    else:
+        print('Goal has an invalid return status!')
+
+    navigator.lifecycleShutdown()
+
+    exit(0)
+
+
+if __name__ == '__main__':
+    main()
