@@ -1,1 +1,38 @@
 [component_container_isolated-1] [INFO] [1714051838.420805268] [local_costmap.local_costmap]: Timed out waiting for transform from base_link to odom to become available, tf error: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+
+
+import rclpy
+from rclpy.node import Node
+import iwlib
+from std_msgs.msg import String
+
+class WiFiInfoPublisher(Node):
+    def __init__(self):
+        super().__init__('wifi_info_publisher')
+        self.publisher_ = self.create_publisher(String, 'wifi_info', 10)
+        self.timer = self.create_timer(5, self.publish_wifi_info)  # Publish every 5 seconds
+
+    def publish_wifi_info(self):
+        wifi_info = self.get_wifi_info()
+        msg = String()
+        msg.data = str(wifi_info)
+        self.publisher_.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data)
+
+    def get_wifi_info(self):
+        interface = 'wlan0'  # Change as needed
+        stats = iwlib.get_iwconfig(interface)
+        return {
+            'link_quality': stats['stats']['quality'],
+            'signal_level': stats['stats']['level'],
+            'noise_level': stats['stats']['noise'],
+        }
+
+def main(args=None):
+    rclpy.init(args=args)
+    wifi_info_publisher = WiFiInfoPublisher()
+    rclpy.spin(wifi_info_publisher)
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
