@@ -1,4 +1,3 @@
-
 i run this 
 
 import rclpy
@@ -9,13 +8,15 @@ import paho.mqtt.client as mqtt
 class ROS2MQTTBridge(Node):
     def __init__(self):
         super().__init__('ros2_mqtt_bridge')
+          
+        
+        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+        self.mqtt_client.connect("192.168.1.39", 1883, 60) ## if i use this pc "localhost" if not replace with IP of the MQTT brocker Pc outside docker is 192.168.1.39
+        self.mqtt_client.loop_start()
+
         self.subscription = self.create_subscription(String, '/detected_status', self.detection_callback, 10)     ### Change topic name  /cmd_vel ....
         self.subscription = self.create_subscription(Float32, 'image/zDepth', self.depth_callback, 10) 
-        # self.subscription  
-        
-        self.mqtt_client = mqtt.Client("ros2_bridge")
-        self.mqtt_client.connect("localhost", 1883, 60)
-        self.mqtt_client.loop_start()
+        # self.subscription
 
     def detection_callback(self, msg):
         # self.get_logger().info('Forwarding: "%s"' % msg.data)
@@ -40,19 +41,28 @@ def main(args=None):
 if __name__ == '__main__':
     main()
 
+i get this error 
 
-i get thois error 
-
-
-
-/app/augmented-robots/server/nux_ws$ /bin/python3 /app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py
+s:/app/augmented-robots/server/nux_ws$ /bin/python3 /app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py
+/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py:11: DeprecationWarning: Callback API version 1 is deprecated, update to latest version
+  self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
 Traceback (most recent call last):
-  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 38, in <module>
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 40, in <module>
     main()
-  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 32, in main
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 34, in main
     bridge = ROS2MQTTBridge()
-  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 13, in __init__
-    self.mqtt_client = mqtt.Client("ros2_bridge")
-  File "/usr/local/lib/python3.10/dist-packages/paho/mqtt/client.py", line 766, in __init__
-    raise ValueError(
-ValueError: Unsupported callback API version: version 2.0 added a callback_api_version, see migrations.md for details
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 12, in __init__
+    self.mqtt_client.connect("192.168.1.39", 1883, 60) ## if i use this pc "localhost" if not replace with IP of the MQTT brocker Pc outside docker is 192.168.1.39
+  File "/usr/local/lib/python3.10/dist-packages/paho/mqtt/client.py", line 1429, in connect
+    return self.reconnect()
+  File "/usr/local/lib/python3.10/dist-packages/paho/mqtt/client.py", line 1592, in reconnect
+    self._sock = self._create_socket()
+  File "/usr/local/lib/python3.10/dist-packages/paho/mqtt/client.py", line 4598, in _create_socket
+    sock = self._create_socket_connection()
+  File "/usr/local/lib/python3.10/dist-packages/paho/mqtt/client.py", line 4623, in _create_socket_connection
+    return socket.create_connection(addr, timeout=self._connect_timeout, source_address=source)
+  File "/usr/lib/python3.10/socket.py", line 845, in create_connection
+    raise err
+  File "/usr/lib/python3.10/socket.py", line 833, in create_connection
+    sock.connect(sa)
+OSError: [Errno 113] No route to host
