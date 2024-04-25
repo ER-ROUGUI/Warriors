@@ -1,1 +1,58 @@
 
+i run this 
+
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String, Float32
+import paho.mqtt.client as mqtt
+
+class ROS2MQTTBridge(Node):
+    def __init__(self):
+        super().__init__('ros2_mqtt_bridge')
+        self.subscription = self.create_subscription(String, '/detected_status', self.detection_callback, 10)     ### Change topic name  /cmd_vel ....
+        self.subscription = self.create_subscription(Float32, 'image/zDepth', self.depth_callback, 10) 
+        # self.subscription  
+        
+        self.mqtt_client = mqtt.Client("ros2_bridge")
+        self.mqtt_client.connect("localhost", 1883, 60)
+        self.mqtt_client.loop_start()
+
+    def detection_callback(self, msg):
+        # self.get_logger().info('Forwarding: "%s"' % msg.data)
+        self.mqtt_client.publish('mqtt_topic', msg.data)
+
+
+    def depth_callback(self , msg):
+
+        self.mqtt_client.publish("mqtt_topic_zDepth" , str(msg.data))
+
+        
+
+        
+
+def main(args=None):
+    rclpy.init(args=args)
+    bridge = ROS2MQTTBridge()
+    rclpy.spin(bridge)
+    bridge.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+i get thois error 
+
+
+
+/app/augmented-robots/server/nux_ws$ /bin/python3 /app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py
+Traceback (most recent call last):
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 38, in <module>
+    main()
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 32, in main
+    bridge = ROS2MQTTBridge()
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/mqtt_bridge.py", line 13, in __init__
+    self.mqtt_client = mqtt.Client("ros2_bridge")
+  File "/usr/local/lib/python3.10/dist-packages/paho/mqtt/client.py", line 766, in __init__
+    raise ValueError(
+ValueError: Unsupported callback API version: version 2.0 added a callback_api_version, see migrations.md for details
