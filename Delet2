@@ -1,5 +1,1 @@
-● emqx.service - emqx daemon
-     Loaded: loaded (/lib/systemd/system/emqx.service; enabled; vendor preset: enabled)
-     Active: activating (auto-restart) (Result: exit-code) since Thu 2024-04-25 13:50:58 CEST; 13s ago
-    Process: 225873 ExecStart=/bin/bash /usr/bin/emqx foreground (code=exited, status=1/FAILURE)
-   Main PID: 225873 (code=exited, status=1/FAILURE)
+[component_container_isolated-1] [INFO] [1714051838.420805268] [local_costmap.local_costmap]: Timed out waiting for transform from base_link to odom to become available, tf error: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
