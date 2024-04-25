@@ -1,38 +1,27 @@
-[component_container_isolated-1] [INFO] [1714051838.420805268] [local_costmap.local_costmap]: Timed out waiting for transform from base_link to odom to become available, tf error: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-
-
-import rclpy
-from rclpy.node import Node
-import iwlib
-from std_msgs.msg import String
-
-class WiFiInfoPublisher(Node):
-    def __init__(self):
-        super().__init__('wifi_info_publisher')
-        self.publisher_ = self.create_publisher(String, 'wifi_info', 10)
-        self.timer = self.create_timer(5, self.publish_wifi_info)  # Publish every 5 seconds
-
-    def publish_wifi_info(self):
-        wifi_info = self.get_wifi_info()
-        msg = String()
-        msg.data = str(wifi_info)
-        self.publisher_.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data)
-
-    def get_wifi_info(self):
-        interface = 'wlan0'  # Change as needed
-        stats = iwlib.get_iwconfig(interface)
-        return {
-            'link_quality': stats['stats']['quality'],
-            'signal_level': stats['stats']['level'],
-            'noise_level': stats['stats']['noise'],
-        }
-
-def main(args=None):
-    rclpy.init(args=args)
-    wifi_info_publisher = WiFiInfoPublisher()
-    rclpy.spin(wifi_info_publisher)
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp1s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN group default qlen 1000
+    link/ether 00:07:32:7b:a9:22 brd ff:ff:ff:ff:ff:ff
+3: wlx70f11c430a8c: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 70:f1:1c:43:0a:8c brd ff:ff:ff:ff:ff:ff
+    inet 192.168.10.179/24 brd 192.168.10.255 scope global dynamic noprefixroute wlx70f11c430a8c
+       valid_lft 65481sec preferred_lft 65481sec
+    inet6 fe80::6919:57e6:91ed:8d05/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+4: hnet0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1350 qdisc fq_codel state UNKNOWN group default qlen 500
+    link/none 
+    inet6 fc94:d11b:5671:e9a7:8712:7b8d:5aba:6cee/16 scope global 
+       valid_lft forever preferred_lft forever
+    inet6 fe80::f5cb:4f97:b728:2cc7/64 scope link stable-privacy 
+       valid_lft forever preferred_lft forever
+5: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:ab:05:2d:11 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:abff:fe05:2d11/64 scope link 
+       valid_lft forever preferred_lft forever
