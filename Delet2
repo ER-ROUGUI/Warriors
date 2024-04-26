@@ -1,75 +1,24 @@
-here the launch file to make navigation with turtlebot real robot sometime it works but sometime it don't 
-what i should add or adjust to get the right code and also sometime the maps don't show on rviz , shoud i use map_server 
-and also shoud i add a time between etch node in launch file 
-
-import os
-from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription, conditions
-from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription , DeclareLaunchArgument , ExecuteProcess
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration ,Command
-
-
-def generate_launch_description():
-    config_dir = os.path.join(get_package_share_directory('navigation_turtlebot'),'config')
-    map_file = os.path.join(config_dir,'couloire.yaml')
-    param_file = os.path.join(config_dir,'tb3_nav2_params.yaml')
-    rviz_config_dir = os.path.join(config_dir,'nav_tb3.rviz')
-    amcl_param_file =os.path.join(config_dir , 'tb3_nav2_params.yaml')
-
-    urdf_file_dir = os.path.join(get_package_share_directory('turtlebot3_description'), 'urdf', 'turtlebot3_waffle.urdf')
-
-    with open(urdf_file_dir, 'r') as file:
-        robot_description_config = file.read()
-
-    return LaunchDescription([
-
-        DeclareLaunchArgument(
-            'use_sim_time',
-            default_value='false',
-            description='use simulation gazebo clock if true'
-        ),
-  
-
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([get_package_share_directory('nav2_bringup'),'/launch','/bringup_launch.py']),
-            launch_arguments={
-            'map':map_file,
-            'params_file': param_file}.items(),
-
-        ),
-
-    Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        name='robot_state_publisher',
-        output='both',
-        parameters=[{'robot_description': robot_description_config , 'use_sim_time': False}]
-        # parameters=[{'robot_description': Command(['xacro', LaunchConfiguration('model')])}],
-        
-    ),
-
-    Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2_node',
-        arguments=['-d', rviz_config_dir],
-        output='screen'
-
-        ),
-    Node(
-    package='nav2_amcl',
-    executable='amcl',
-    name='amcl',
-    parameters = [amcl_param_file, {'use_sim_time' : LaunchConfiguration('use_sim_time')}],
-
-    output='screen'
-
-    ),
-
-    # lifecycle manager >>>> to localize the robot
-    ExecuteProcess(
-        cmd=['ros2' , 'run' , 'nav2_util', 'lifecycle_bringup', 'amcl']
-    )
-    ])
+in ros2 foxy i do and i get 
+sudo apt update
+Réception de :1 https://deb.nodesource.com/node_16.x focal InRelease [4 583 B]
+Atteint :2 http://apt.postgresql.org/pub/repos/apt focal-pgdg InRelease
+Atteint :3 http://fr.archive.ubuntu.com/ubuntu focal InRelease
+Atteint :4 http://fr.archive.ubuntu.com/ubuntu focal-updates InRelease
+Atteint :5 http://fr.archive.ubuntu.com/ubuntu focal-backports InRelease
+Atteint :6 http://packages.ros.org/ros2/ubuntu focal InRelease                                                                                                            
+Atteint :7 https://dl.google.com/linux/chrome/deb stable InRelease                                                                                                        
+Atteint :8 http://repo.ros2.org/ubuntu/main focal InRelease                                                                                                               
+Ign :10 https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 InRelease                                                                                               
+Atteint :11 https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 Release                                                          
+Atteint :13 http://security.ubuntu.com/ubuntu focal-security InRelease                                                  
+Atteint :14 https://download.docker.com/linux/ubuntu focal InRelease                                                    
+Atteint :9 https://packages.microsoft.com/repos/code stable InRelease                                 
+Ign :16 https://packagecloud.io/timescale/timescaledb/debian focal InRelease                          
+Atteint :15 https://packagecloud.io/timescale/timescaledb/ubuntu focal InRelease                
+Err :17 https://packagecloud.io/timescale/timescaledb/debian focal Release                                                                                                
+  404  Not Found [IP : 54.241.80.18 443]
+Lecture des listes de paquets... Fait                                                                                                                                     
+N: Le fichier configuré « main/binary-i386/Packages » ne sera pas pris en compte car le dépôt « http://apt.postgresql.org/pub/repos/apt focal-pgdg InRelease » ne prend pas en charge l'architecture « i386 »
+E: Le dépôt https://packagecloud.io/timescale/timescaledb/debian focal Release n'a pas de fichier Release.
+N: Les mises à jour depuis un tel dépôt ne peuvent s'effectuer de manière sécurisée, et sont donc désactivées par défaut.
+N: Voir les pages de manuel d'apt-secure(8) pour la création des dépôts et les détails de configuration d'un utilisateur.
