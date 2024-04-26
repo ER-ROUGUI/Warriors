@@ -1,3 +1,113 @@
+waypoints:
+  - position:
+      x: 1.0
+      y: -2.0
+    orientation:
+      z: -0.28
+      w: 0.95
+  - position:
+      x: 4.0
+      y: -3.0
+    orientation:
+      z: 0.707
+      w: 0.95
+  - position:
+      x: 3.0
+      y: -5.0
+    orientation:
+      z: 0.707
+      w: 0.707
+  - position:
+      x: -7.0
+      y: 1.0
+    orientation:
+      z: 0.707
+      w: 0.707
+  - position:
+      x: 4.0
+      y: 3.0
+    orientation:
+      z: 0.99
+      w: 0.99
+
+
+
+#! /usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import PoseStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+import yaml
+import os
+
+def load_waypoints(yaml_path):
+    with open(yaml_path, 'r') as f:
+        data = yaml.safe_load(f)
+        waypoints = data['waypoints']
+        goal_poses = []
+        for wp in waypoints:
+            pose = PoseStamped()
+            pose.header.frame_id = 'map'
+            pose.header.stamp = Node().get_clock().now().to_msg()
+            pose.pose.position.x = wp['position']['x']
+            pose.pose.position.y = wp['position']['y']
+            pose.pose.orientation.z = wp['orientation']['z']
+            pose.pose.orientation.w = wp['orientation']['w']
+            goal_poses.append(pose)
+        return goal_poses
+
+def main():
+    rclpy.init()
+
+    navigator = BasicNavigator()
+
+    # Load waypoints from YAML
+    yaml_path = os.path.join(os.path.dirname(__file__), 'waypoints.yaml')
+    goal_poses = load_waypoints(yaml_path)
+
+    # Initialize navigation
+    navigator.lifecycleStartup() ###
+    navigator.waitUntilNav2Active()
+
+    # Get initial pose (for path verification)
+    initial_pose = goal_poses[0]
+
+    # Follow waypoints
+    nav_start = navigator.get_clock().now()
+    navigator.followWaypoints(goal_poses)
+
+    while not navigator.isTaskComplete():
+        feedback = navigator.getFeedback()
+        if feedback:
+            print('Executing current waypoint: ' +
+                  str(feedback.current_waypoint + 1) + '/' + str(len(goal_poses)))
+
+    # Handle task completion
+    result = navigator.getResult()
+    if result == TaskResult.SUCCEEDED:
+        print('Goal succeeded!')
+    elif result == TaskResult.CANCELED:
+        print('Goal was canceled!')
+    elif result == TaskResult.FAILED:
+        print('Goal failed!')
+    else:
+        print('Goal has an invalid return status!')
+
+    navigator.lifecycleShutdown()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
 THIS CODE SEND A waypoints to the robot 
 
 #! /usr/bin/env python3
