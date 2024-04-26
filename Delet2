@@ -1,232 +1,164 @@
-waypoints:
-  - position:
-      x: 1.0
-      y: -2.0
-    orientation:
-      z: -0.28
-      w: 0.95
-  - position:
-      x: 4.0
-      y: -3.0
-    orientation:
-      z: 0.707
-      w: 0.95
-  - position:
-      x: 3.0
-      y: -5.0
-    orientation:
-      z: 0.707
-      w: 0.707
-  - position:
-      x: -7.0
-      y: 1.0
-    orientation:
-      z: 0.707
-      w: 0.707
-  - position:
-      x: 4.0
-      y: 3.0
-    orientation:
-      z: 0.99
-      w: 0.99
-
-
-
-#! /usr/bin/env python3
+HERE I WANT TO ADD INFOR ON IMAGE LIKE WHEN I DETECT THE OBJECT CLASS='OBJECT' I WANT TO WRITE SOMTHING IN TOP OF THE RECTONGLE EVEN IF THE RECTONGLE SHOWS AND HIDE SO THE WRITTING WILL BE STABLE SO THE USER WILL SEE IT
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
-import yaml
+from std_msgs.msg import String
+from sensor_msgs.msg import Image
+from geometry_msgs.msg import PointStamped
+import cv2
+import numpy as np
+from cv_bridge import CvBridge
+from ultralytics import YOLO
+import open3d as o3d 
+from ament_index_python.packages import get_package_share_directory
+import pyrealsense2 as rs
 import os
 
-def load_waypoints(yaml_path):
-    with open(yaml_path, 'r') as f:
-        data = yaml.safe_load(f)
-        waypoints = data['waypoints']
-        goal_poses = []
-        for wp in waypoints:
-            pose = PoseStamped()
-            pose.header.frame_id = 'map'
-            pose.header.stamp = Node().get_clock().now().to_msg()
-            pose.pose.position.x = wp['position']['x']
-            pose.pose.position.y = wp['position']['y']
-            pose.pose.orientation.z = wp['orientation']['z']
-            pose.pose.orientation.w = wp['orientation']['w']
-            goal_poses.append(pose)
-        return goal_poses
+
+# smart_robots_dir = get_package_share_directory("smart_robots_controller")
+# model_file = os.path.join(smart_robots_dir, "config", "yolov8n.pt")
+model_file = "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/config/yolov8n.pt"
+
+model = YOLO(model_file)
+class ImageSubscriber(Node):
+
+    def __init__(self):
+        super().__init__('image_subscriber_yolo')
+        self.image_sub = self.create_subscription(Image, '/camera/image_raw/compressed', self.image_callback, 10)
+        self.depth_sub = self.create_subscription(PointStamped, 'image/zDepth', self.zDepth_callback, 10)
+
+        self.label_pub = self.create_publisher(String , '/detected_status' , 10)
+        self.last_detected = False
+
+
+        self.bridge = CvBridge()
+
+        timer_period = 0.5
+
+        self.center_pub = self.create_publisher(PointStamped , '/image/center_coordinates' , 10)
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.i = 0
+        self.center_coordinates = []
+
+
+    
+
+    def image_callback(self, msg):
+        # global center_coordinates
+
+
+        decoded_data = np.frombuffer(msg.data, dtype=np.uint8)
+        decoded_image = cv2.imdecode(decoded_data, cv2.IMREAD_COLOR) 
+
+        rbg_image = cv2.cvtColor(decoded_image , cv2.COLOR_BGR2RGB)
+
+        results = model(rbg_image)
+        results = model.predict(source=rbg_image, show=False, stream=True, verbose=False) 
+        person_detected = False
+
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+            # bounding box
+                #print(box.xyxy[0])
+                x1, y1, x2, y2 = box.xyxy[0]
+                confidence =box.conf[0]
+                cls = int(box.cls[0])
+
+                if model.names[cls] == "person" and confidence > 0.5 : # we can use door or window instead person !!!
+
+                    person_detected = True
+                    
+                    cv2.rectangle(decoded_image , (int(x1),int(y1)) , (int(x2) , int(y2)) , (0,255,0) , 2)
+
+
+                    (x_center,y_center) = (x2 + x1)/2, (y2+y1)/2 
+                    center_coordinates = (int(x_center),int(y_center))
+
+                    try:
+                        
+                        # zDepth = None  #depth_frame.get_distance(int(x_center),int(y_center))
+                        print("Nothing just  ....." )
+
+                    except (AttributeError , NameError):
+                        print("Depth unavailable")
+
+                    
+                    # print(zDepth)
+
+                    frame_center = (rbg_image.shape[1]//2 ,rbg_image.shape[0]//2)
+                    error_x = center_coordinates[0] - frame_center[0]
+                    error_y = center_coordinates[1] - frame_center[1]
+
+                    self.center_coordinates.append(  (int(x_center) , int(y_center) ))
+
+                    # print(f"Error: x ={error_x} , y={error_y}")
+
+                    # center_msg = PointStamped()
+                    # center_msg.header.stamp = self.get_clock().now().to_msg()
+                    # center_msg.point.x = x_center
+                    # center_msg.point.y = y_center
+                    # self.center_pub.publish(center_msg)
+                    # self.get_logger().info(f"Center coordinates : ({x_center} , {y_center})")
+                    
+                    if center_coordinates is not None :
+            
+                        cv2.circle(decoded_image, center_coordinates, 5, (0,0,255), 5)
+
+
+        if person_detected:
+            if not self.last_detected:
+                self.label_pub.publish(String(data="person has been detected")) 
+                self.last_detected = True
+
+        else:
+
+            if self.last_detected:
+                self.label_pub.publish(String(data="No detection yet !!"))      
+                self.last_detected = False
+               
+
+        cv2.imshow('RealSense Image subscriber', decoded_image)
+        cv2.waitKey(1)
+
+    def timer_callback(self):
+
+
+        if len(self.center_coordinates)>0 :
+
+            x_center , y_center = self.center_coordinates[-1]
+
+            msg = PointStamped()
+            msg.header.stamp = self. get_clock().now().to_msg()
+            msg.point.x = float(x_center)
+            msg.point.y = float(y_center)
+
+            self.center_pub.publish(msg)
+            self.get_logger().info(f"Publishing center Coordinates: {msg.point.x} ,{msg.point.y}")
+            self.i += 1
+        else:
+            self.get_logger().info('No center Coordinates:')
+
+    def zDepth_callback(self ,msg):
+
+        msg = PointStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        # msg.point.z = float(x_center)
+        # x_center  =center_msg.point.x
+        # y_center =center_msg.point.y
+        zDepth  = msg.point.z
+
+        self.get_logger().info(f"Publishing zDepth value: {zDepth}")
+        
+
+ 
+
+
 
 def main():
     rclpy.init()
-
-    navigator = BasicNavigator()
-
-    # Load waypoints from YAML
-    yaml_path = os.path.join(os.path.dirname(__file__), 'waypoints.yaml')
-    goal_poses = load_waypoints(yaml_path)
-
-    # Initialize navigation
-    navigator.lifecycleStartup() ###
-    navigator.waitUntilNav2Active()
-
-    # Get initial pose (for path verification)
-    initial_pose = goal_poses[0]
-
-    # Follow waypoints
-    nav_start = navigator.get_clock().now()
-    navigator.followWaypoints(goal_poses)
-
-    while not navigator.isTaskComplete():
-        feedback = navigator.getFeedback()
-        if feedback:
-            print('Executing current waypoint: ' +
-                  str(feedback.current_waypoint + 1) + '/' + str(len(goal_poses)))
-
-    # Handle task completion
-    result = navigator.getResult()
-    if result == TaskResult.SUCCEEDED:
-        print('Goal succeeded!')
-    elif result == TaskResult.CANCELED:
-        print('Goal was canceled!')
-    elif result == TaskResult.FAILED:
-        print('Goal failed!')
-    else:
-        print('Goal has an invalid return status!')
-
-    navigator.lifecycleShutdown()
+    node = ImageSubscriber()
+    rclpy.spin(node)
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
-
-
-THIS CODE SEND A waypoints to the robot 
-
-#! /usr/bin/env python3
-from geometry_msgs.msg import PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
-import rclpy
-from rclpy.duration import Duration
-
-"""
-navigation turtlebot to go to poses.
-"""
-
-
-def main():
-    rclpy.init()
-
-    navigator = BasicNavigator()
-
-    initial_pose = PoseStamped()
-    initial_pose.header.frame_id = 'map'
-    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-    initial_pose.pose.position.x = 0.2
-    initial_pose.pose.position.y = -1.0
-    initial_pose.pose.orientation.z = -0.28
-    initial_pose.pose.orientation.w = 0.95
-    # navigator.setInitialPose(initial_pose)
-
-    navigator.lifecycleStartup() ###
-
-    navigator.waitUntilNav2Active()
-
-    goal_poses = []
-
-    goal_pose1 = PoseStamped()
-    goal_pose1.header.frame_id = 'map'
-    goal_pose1.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose1.pose.position.x = 1.0
-    goal_pose1.pose.position.y = -2.0
-    goal_pose1.pose.orientation.w = -0.28
-    goal_pose1.pose.orientation.z = 0.95
-    goal_poses.append(goal_pose1)
-
-    goal_pose2 = PoseStamped()
-    goal_pose2.header.frame_id = 'map'
-    goal_pose2.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose2.pose.position.x = 4.0
-    goal_pose2.pose.position.y = -3.0
-    goal_pose2.pose.orientation.w = 0.95
-    goal_pose2.pose.orientation.z = 0.707
-    goal_poses.append(goal_pose2)
-
-    goal_pose3 = PoseStamped()
-    goal_pose3.header.frame_id = 'map'
-    goal_pose3.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose3.pose.position.x = 3.0
-    goal_pose3.pose.position.y = -5.0
-    goal_pose3.pose.orientation.w = 0.707
-    goal_pose3.pose.orientation.z = 0.707
-    goal_poses.append(goal_pose3)
-
-    goal_pose4 = PoseStamped()
-    goal_pose4.header.frame_id = 'map'
-    goal_pose4.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose4.pose.position.x = -7.0
-    goal_pose4.pose.position.y = 1.0
-    goal_pose4.pose.orientation.w = 0.707
-    goal_pose4.pose.orientation.z = 0.707
-    goal_poses.append(goal_pose4)
-
-    goal_pose5 = PoseStamped()
-    goal_pose5.header.frame_id = 'map'
-    goal_pose5.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose5.pose.position.x = 4.0
-    goal_pose5.pose.position.y = 3.0
-    goal_pose5.pose.orientation.w = 0.99
-    goal_pose5.pose.orientation.z = 0.99
-    goal_poses.append(goal_pose5)
-
-
-
-
-    # sanity check a valid path exists
-    navigator.getPath(initial_pose, goal_poses)
-
-    nav_start = navigator.get_clock().now()
-    navigator.followWaypoints(goal_poses)
-
-    i = 0
-    while not navigator.isTaskComplete():
-
-        i = i + 1
-        feedback = navigator.getFeedback()
-        if feedback and i % 5 == 0:
-            print('Executing current waypoint: ' +
-                  str(feedback.current_waypoint + 1) + '/' + str(len(goal_poses)))
-            now = navigator.get_clock().now()
-
-            # Some navigation timeout to demo cancellation
-            if now - nav_start > Duration(seconds=600.0):
-                navigator.cancelTask()
-
-    # Do something depending on the return code
-    result = navigator.getResult()
-    if result == TaskResult.SUCCEEDED:
-        print('Goal succeeded!')
-    elif result == TaskResult.CANCELED:
-        print('Goal was canceled!')
-    elif result == TaskResult.FAILED:
-        print('Goal failed!')
-    else:
-        print('Goal has an invalid return status!')
-
-    navigator.lifecycleShutdown()
-
-    exit(0)
-
-
-if __name__ == '__main__':
-    main()
-
-
-I want to make thoses cordinate in a config file .yaml and integrate it in this code so it will be the same results 
