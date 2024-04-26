@@ -1,91 +1,75 @@
-import rclpy 
-from rclpy.node import Node 
-from sensor_msgs.msg import Image 
-from geometry_msgs.msg import PointStamped
-from cv_bridge import CvBridge 
-import cv2 
-import pyrealsense2 as rs
-import numpy as np
- 
-class ImagePublisher(Node):
- 
-  def __init__(self):
- 
-  
-    super().__init__('image_publisher')
+here the launch file to make navigation with turtlebot real robot sometime it works but sometime it don't 
+what i should add or adjust to get the right code and also sometime the maps don't show on rviz , shoud i use map_server 
+and also shoud i add a time between etch node in launch file 
 
-    self.publisher_ = self.create_publisher(Image, '/camera/image_raw/compressed', 10) 
-    self.bridge = CvBridge()
-    self.center_sub = self.create_subscription(PointStamped , '/image/center_coordinates' , self.center_callback ,10)
-    self.depth_pub = self.create_publisher(PointStamped , '/image/zDepth' , 10)
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription, conditions
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription , DeclareLaunchArgument , ExecuteProcess
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration ,Command
 
-    self.pipeline =  rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.depth , 640 ,480 , rs.format.z16 , 30)
-    config.enable_stream(rs.stream.color , 640 ,480 , rs.format.bgr8 , 30) # FPS = 30 
 
-    self.pipeline.start(config)
+def generate_launch_description():
+    config_dir = os.path.join(get_package_share_directory('navigation_turtlebot'),'config')
+    map_file = os.path.join(config_dir,'couloire.yaml')
+    param_file = os.path.join(config_dir,'tb3_nav2_params.yaml')
+    rviz_config_dir = os.path.join(config_dir,'nav_tb3.rviz')
+    amcl_param_file =os.path.join(config_dir , 'tb3_nav2_params.yaml')
 
-  
-    self.timer_period = 0.1  
-    self.timer = self.create_timer(self.timer_period , self.timer_callback)
-    self.x_center = None
-    self.y_center = None 
+    urdf_file_dir = os.path.join(get_package_share_directory('turtlebot3_description'), 'urdf', 'turtlebot3_waffle.urdf')
 
-  def timer_callback(self):
-    frames = self.pipeline.wait_for_frames()  
-    depth_frame = frames.get_depth_frame()
-    color_frame = frames.get_color_frame()
-    depth_frame = frames.get_depth_frame()
-    if color_frame:
-      color_image = np.asanyarray(color_frame.get_data()) 
-      #rgb_image = cv2.cvtColor(color_image , cv2.COLOR_BGR2RGB)
- 
-    
-#      if self.center_sub:
-#          if self.center_x is not None and self.center_y is not None:
-#            print(f"Center Coordinates : ({self.center_x} , {self.center_y})")
-   
-      _ , compressed_image_data = cv2.imencode('.jpg' , color_image , [cv2.IMWRITE_JPEG_QUALITY , 20])
-      compressed_image_data  = compressed_image_data.tobytes()
-      
-      msg = Image()
-      msg.header.stamp = self.get_clock().now().to_msg()
+    with open(urdf_file_dir, 'r') as file:
+        robot_description_config = file.read()
 
-      msg.data = compressed_image_data 
-      msg.encoding = 'jpeg'
+    return LaunchDescription([
 
-      self.publisher_ .publish(msg) 
-#      self.timer_callback(self.x_center , self.y_center)
-    if self.x_center is not None and self.y_center is not None:
-      zDepth = depth_frame.get_distance(int(self.x_center),int(self.y_center))
-      depth_msg = PointStamped()
-      depth_msg.header.stamp = self.get_clock().now().to_msg()
-      depth_msg.point.x = self.x_center
-      depth_msg.point.y = self.y_center
-      depth_msg.point.z = zDepth
-      self.depth_pub.publish(depth_msg)
-      self.get_logger().info(f"Depth is  : {zDepth}")
-  
-  def center_callback(self ,msg):
-#                  
-    self.x_center = msg.point.x
-    self.y_center = msg.point.y
-#    zDepth = depth_frame.get_distance(int(self.x_center),int(self.y_center))
-#    self.center_callback(self.x_center ,self.y_center)
-#    self.get_logger().info(f"Depth is  : {zDepth})")
-#    self.get_logger().info('I heard: "%s"' % msg.zDepth)
-   
-def main(args=None):
-
-  rclpy.init(args=args)
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false',
+            description='use simulation gazebo clock if true'
+        ),
   
 
-  image_publisher = ImagePublisher()
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('nav2_bringup'),'/launch','/bringup_launch.py']),
+            launch_arguments={
+            'map':map_file,
+            'params_file': param_file}.items(),
 
-  rclpy.spin(image_publisher)
-  
-  rclpy.shutdown()
-  
-if __name__ == '__main__':
-  main()
+        ),
+
+    Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='both',
+        parameters=[{'robot_description': robot_description_config , 'use_sim_time': False}]
+        # parameters=[{'robot_description': Command(['xacro', LaunchConfiguration('model')])}],
+        
+    ),
+
+    Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2_node',
+        arguments=['-d', rviz_config_dir],
+        output='screen'
+
+        ),
+    Node(
+    package='nav2_amcl',
+    executable='amcl',
+    name='amcl',
+    parameters = [amcl_param_file, {'use_sim_time' : LaunchConfiguration('use_sim_time')}],
+
+    output='screen'
+
+    ),
+
+    # lifecycle manager >>>> to localize the robot
+    ExecuteProcess(
+        cmd=['ros2' , 'run' , 'nav2_util', 'lifecycle_bringup', 'amcl']
+    )
+    ])
