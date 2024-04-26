@@ -1,23 +1,6 @@
-sudo dpkg --remove-architecture i386
-ros:/etc/apt/sources.list.d$ sudo apt update
-Atteint :1 http://apt.postgresql.org/pub/repos/apt focal-pgdg InRelease
-Atteint :2 http://packages.ros.org/ros2/ubuntu focal InRelease            
-Réception de :3 https://deb.nodesource.com/node_16.x focal InRelease [4 583 B]                                                                                            
-Atteint :4 http://fr.archive.ubuntu.com/ubuntu focal InRelease                                                                                                            
-Atteint :5 http://fr.archive.ubuntu.com/ubuntu focal-updates InRelease                                                                                                    
-Atteint :6 http://fr.archive.ubuntu.com/ubuntu focal-backports InRelease                                                                                                  
-Atteint :7 http://security.ubuntu.com/ubuntu focal-security InRelease                                                                                                     
-Atteint :8 https://download.docker.com/linux/ubuntu focal InRelease                                                                                                       
-Atteint :10 http://repo.ros2.org/ubuntu/main focal InRelease                                                                                                              
-Ign :11 https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 InRelease                                                                
-Atteint :12 https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 Release                                    
-Atteint :13 https://dl.google.com/linux/chrome/deb stable InRelease                                              
-Atteint :9 https://packages.microsoft.com/repos/code stable InRelease
-Ign :16 https://packagecloud.io/timescale/timescaledb/debian focal InRelease
-Atteint :15 https://packagecloud.io/timescale/timescaledb/ubuntu focal InRelease
-Err :17 https://packagecloud.io/timescale/timescaledb/debian focal Release
-  404  Not Found [IP : 54.67.124.191 443]
-Lecture des listes de paquets... Fait            
-E: Le dépôt https://packagecloud.io/timescale/timescaledb/debian focal Release n'a pas de fichier Release.
-N: Les mises à jour depuis un tel dépôt ne peuvent s'effectuer de manière sécurisée, et sont donc désactivées par défaut.
-N: Voir les pages de manuel d'apt-secure(8) pour la création des dépôts et les détails de configuration d'un utilisateur.
+t.d$ grep -r "timescale" /etc/apt/sources.list /etc/apt/sources.list.d/
+/etc/apt/sources.list.d/timescaledb.list:deb https://packagecloud.io/timescale/timescaledb/debian/ focal main
+/etc/apt/sources.list.d/timescale_timescaledb.list:# the repository at https://packagecloud.io/timescale/timescaledb
+/etc/apt/sources.list.d/timescale_timescaledb.list:deb [signed-by=/etc/apt/keyrings/timescale_timescaledb-archive-keyring.gpg] https://packagecloud.io/timescale/timescaledb/ubuntu/ focal main
+/etc/apt/sources.list.d/timescale_timescaledb.list:deb-src [signed-by=/etc/apt/keyrings/timescale_timescaledb-archive-keyring.gpg] https://packagecloud.io/timescale/timescaledb/ubuntu/ focal main
+orange@nuc-ros:/etc/apt/sources.list.d$ 
