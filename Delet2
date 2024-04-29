@@ -1,19 +1,34 @@
-[INFO] [1714380701.315713117] [wifi_signal_monitor]: Published: "Strong WiFi signal" with signal strength -55 dBm
-docker0   no wireless extensions.
-
-hnet0     no wireless extensions.
-
-enp1s0    no wireless extensions.
-
-lo        no wireless extensions.
-
-[INFO] [1714380706.318075526] [wifi_signal_monitor]: Published: "Strong WiFi signal" with signal strength -59 dBm
-docker0   no wireless extensions.
-
-hnet0     no wireless extensions.
-
-enp1s0    no wireless extensions.
-
-lo        no wireless extensions.
-
-[INFO] [1714380711.312418395] [wifi_signal_monitor]: Published: "Strong WiFi signal" with signal strength -53 dBm
+ => ERROR [23/24] RUN ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && cd /app/augmented-  3.6s
+------                                                                                                   
+ > [23/24] RUN ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && cd /app/augmented-robots/server/nux_ws && colcon build --packages-select smart_robots_controller navigation_tb3 turtlebot3_gazebo turtlebot3_description navigation_husarion_pkg navigation_turtlebot"]:                                          
+0.878 Starting >>> navigation_husarion_pkg                                                               
+0.886 Starting >>> navigation_tb3                                                                        
+0.890 Starting >>> navigation_turtlebot
+0.893 Starting >>> smart_robots_controller
+0.898 Starting >>> turtlebot3_description
+0.901 Starting >>> turtlebot3_gazebo
+1.481 --- stderr: navigation_turtlebot
+1.481 make: /home/orange/.local/lib/python3.8/site-packages/cmake/data/bin/cmake: No such file or directory
+1.481 make: *** [Makefile:226: cmake_check_build_system] Error 127
+1.481 ---
+1.481 Failed   <<< navigation_turtlebot [0.59s, exited with code 2]
+1.862 Aborted  <<< navigation_husarion_pkg [0.98s]
+1.866 Aborted  <<< smart_robots_controller [0.97s]
+2.061 Aborted  <<< turtlebot3_description [1.16s]
+2.542 Aborted  <<< navigation_tb3 [1.66s]
+3.486 Aborted  <<< turtlebot3_gazebo [2.58s]
+3.515 
+3.515 Summary: 0 packages finished [2.91s]
+3.515   1 package failed: navigation_turtlebot
+3.515   5 packages aborted: navigation_husarion_pkg navigation_tb3 smart_robots_controller turtlebot3_description turtlebot3_gazebo
+3.515   2 packages had stderr output: navigation_turtlebot turtlebot3_gazebo
+------
+Dockerfile:91
+--------------------
+  89 |     
+  90 |     
+  91 | >>> RUN ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && cd /app/augmented-robots/server/nux_ws && colcon build --packages-select smart_robots_controller navigation_tb3 turtlebot3_gazebo turtlebot3_description navigation_husarion_pkg navigation_turtlebot"] 
+  92 |     
+  93 |     
+--------------------
+ERROR: failed to solve: process "/bin/bash -c source /opt/ros/humble/setup.bash && cd /app/augmented-robots/server/nux_ws && colcon build --packages-select smart_robots_controller navigation_tb3 turtlebot3_gazebo turtlebot3_description navigation_husarion_pkg navigation_turtlebot" did not complete successfully: exit code: 2
