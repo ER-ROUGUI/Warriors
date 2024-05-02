@@ -1,3 +1,46 @@
+import cv2
+
+def main():
+    # Initialize video capture on the first video device
+    cap = cv2.VideoCapture(0)
+
+    if not cap.isOpened():
+        print("Error: Camera is not connected or cannot be accessed.")
+        return
+
+    try:
+        while True:
+            # Capture frame-by-frame
+            ret, frame = cap.read()
+
+            if not ret:
+                print("Error: Can't receive frame (stream end?). Exiting...")
+                break
+
+            # Display the resulting frame
+            cv2.imshow('Video Capture', frame)
+
+            # Press 'q' to exit the loop
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        # When everything done, release the capture
+        cap.release()
+        cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
