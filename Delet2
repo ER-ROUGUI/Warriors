@@ -1,3 +1,46 @@
+
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+import yaml
+
+class RobotSpecPublisher(Node):
+    def __init__(self):
+        super().__init__('robot_spec_publisher')
+        self.publisher_ = self.create_publisher(String, 'robot_specifications', 10)
+        self.timer = self.create_timer(5.0, self.publish_robot_specs)
+
+    def publish_robot_specs(self):
+        # Load robot specifications from a YAML file
+        with open('/path/to/your/config.yaml', 'r') as file:
+            robot_specs = yaml.safe_load(file)
+            specs_str = yaml.dump(robot_specs)
+            self.publisher_.publish(String(data=specs_str))
+            self.get_logger().info(f'Published robot specifications: {specs_str}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    robot_spec_publisher = RobotSpecPublisher()
+    rclpy.spin(robot_spec_publisher)
+    robot_spec_publisher.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+robot_name: Husarion Pro
+is_available: true
+capabilities: ['heavy_lifting', 'navigation']
+current_location: [2.0, 3.0]
+battery_level: 80
+success_rate: 88
+
+
+
+
+
 import pyrealsense2 as rs
 import numpy as np
 import cv2
