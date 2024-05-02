@@ -1,3 +1,45 @@
+~/libcamera-apps$ meson compile -C build
+INFO: autodetecting backend as ninja
+INFO: calculating backend command to run: /usr/local/bin/ninja -C /home/orange/libcamera-apps/build
+ninja: Entering directory `/home/orange/libcamera-apps/build'
+[3/11] Compiling C++ object libcamera_app.so.1.2.2.p/core_libcamera_app.cpp.o
+FAILED: libcamera_app.so.1.2.2.p/core_libcamera_app.cpp.o 
+c++ -Ilibcamera_app.so.1.2.2.p -I. -I.. -Icore -I/usr/local/include/libcamera -I/usr/include -I/usr/include/x86_64-linux-gnu -I/usr/include/libexif -I/usr/include/libpng16 -I/usr/include/libdrm -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -fdiagnostics-color=always -Wall -Winvalid-pch -Wnon-virtual-dtor -Wextra -Wpedantic -Werror -std=c++17 -O3 -pedantic -Wno-unused-parameter -faligned-new -D_FILE_OFFSET_BITS=64 -Wno-psabi -DLIBAV_PRESENT=1 -DLIBDRM_PRESENT=1 -DQT_PRESENT=1 -fPIC -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -pthread -DBOOST_ALL_NO_LIB -MD -MQ libcamera_app.so.1.2.2.p/core_libcamera_app.cpp.o -MF libcamera_app.so.1.2.2.p/core_libcamera_app.cpp.o.d -o libcamera_app.so.1.2.2.p/core_libcamera_app.cpp.o -c ../core/libcamera_app.cpp
+../core/libcamera_app.cpp: In member function ‘void LibcameraApp::ConfigureViewfinder()’:
+../core/libcamera_app.cpp:327:18: error: ‘class libcamera::CameraConfiguration’ has no member named ‘transform’
+  327 |  configuration_->transform = options_->transform;
+      |                  ^~~~~~~~~
+../core/libcamera_app.cpp: In member function ‘void LibcameraApp::ConfigureStill(unsigned int)’:
+../core/libcamera_app.cpp:374:18: error: ‘class libcamera::CameraConfiguration’ has no member named ‘transform’
+  374 |  configuration_->transform = options_->transform;
+      |                  ^~~~~~~~~
+../core/libcamera_app.cpp: In member function ‘void LibcameraApp::ConfigureVideo(unsigned int)’:
+../core/libcamera_app.cpp:432:18: error: ‘class libcamera::CameraConfiguration’ has no member named ‘transform’
+  432 |  configuration_->transform = options_->transform;
+      |                  ^~~~~~~~~
+../core/libcamera_app.cpp:461:18: error: ‘class libcamera::CameraConfiguration’ has no member named ‘transform’
+  461 |  configuration_->transform = options_->transform;
+      |                  ^~~~~~~~~
+[4/11] Compiling C++ object libcamera_app.so.1.2.2.p/preview_qt_preview.cpp.o
+FAILED: libcamera_app.so.1.2.2.p/preview_qt_preview.cpp.o 
+c++ -Ilibcamera_app.so.1.2.2.p -I. -I.. -Icore -I/usr/local/include/libcamera -I/usr/include -I/usr/include/x86_64-linux-gnu -I/usr/include/libexif -I/usr/include/libpng16 -I/usr/include/libdrm -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -fdiagnostics-color=always -Wall -Winvalid-pch -Wnon-virtual-dtor -Wextra -Wpedantic -Werror -std=c++17 -O3 -pedantic -Wno-unused-parameter -faligned-new -D_FILE_OFFSET_BITS=64 -Wno-psabi -DLIBAV_PRESENT=1 -DLIBDRM_PRESENT=1 -DQT_PRESENT=1 -fPIC -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -pthread -DBOOST_ALL_NO_LIB -MD -MQ libcamera_app.so.1.2.2.p/preview_qt_preview.cpp.o -MF libcamera_app.so.1.2.2.p/preview_qt_preview.cpp.o.d -o libcamera_app.so.1.2.2.p/preview_qt_preview.cpp.o -c ../preview/qt_preview.cpp
+In file included from /usr/include/x86_64-linux-gnu/qt5/QtCore/qlocale.h:43,
+                 from /usr/include/x86_64-linux-gnu/qt5/QtGui/qguiapplication.h:47,
+                 from /usr/include/x86_64-linux-gnu/qt5/QtWidgets/qapplication.h:52,
+                 from /usr/include/x86_64-linux-gnu/qt5/QtWidgets/QApplication:1,
+                 from ../preview/qt_preview.cpp:17:
+/usr/include/x86_64-linux-gnu/qt5/QtCore/qvariant.h: In constructor ‘QVariant::QVariant(QVariant&&)’:
+/usr/include/x86_64-linux-gnu/qt5/QtCore/qvariant.h:275:25: error: implicitly-declared ‘constexpr QVariant::Private& QVariant::Private::operator=(const QVariant::Private&)’ is deprecated [-Werror=deprecated-copy]
+  275 |     { other.d = Private(); }
+      |                         ^
+/usr/include/x86_64-linux-gnu/qt5/QtCore/qvariant.h:401:16: note: because ‘QVariant::Private’ has user-provided ‘QVariant::Private::Private(const QVariant::Private&)’
+  401 |         inline Private(const Private &other) Q_DECL_NOTHROW
+      |                ^~~~~~~
+cc1plus: all warnings being treated as errors
+ninja: build stopped: subcommand failed.
+
+
+
 import rclpy 
 from rclpy.node import Node 
 from sensor_msgs.msg import Image 
