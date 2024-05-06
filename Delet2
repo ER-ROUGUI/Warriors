@@ -23,7 +23,63 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr visualization_pub_;
 };
 
+#include "tracker.hpp"
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/imgproc.hpp>
 
+Tracker::Tracker() : Node("tracker"), is_initialized_(false) {
+    image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+        "/image", 10, std::bind(&Tracker::imageCallback, this, std::placeholders::_1));
+    visualization_pub_ = this->create_publisher<sensor_msgs::msg::Image>("/visualization", 10);
+}
+
+Tracker::~Tracker() {
+    // Destructor content if needed
+}
+
+void Tracker::imageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
+    cv_bridge::CvImagePtr cv_ptr;
+    try {
+        cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    } catch (cv_bridge::Exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+        return;
+    }
+
+    if (!is_initialized_) {
+        initializeTracker(cv_ptr->image);
+    } else {
+        if (updateTracker(cv_ptr->image)) {
+            // Draw bounding box on the image
+            cv::rectangle(cv_ptr->image, tracking_bbox_, cv::Scalar(0, 255, 0), 2, 1);
+        } else {
+            RCLCPP_WARN(this->get_logger(), "Tracking failure detected");
+        }
+    }
+
+    // Output modified frame
+    sensor_msgs::msg::Image::SharedPtr out_msg = cv_ptr->toImageMsg();
+    visualization_pub_->publish(*out_msg);
+}
+
+void Tracker::initializeTracker(cv::Mat& frame) {
+    // Define initial bounding box
+    tracking_bbox_ = cv::selectROI("Tracker", frame);
+    if (tracking_bbox_.width == 0 || tracking_bbox_.height == 0) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid ROI selected");
+        return;
+    }
+
+    // Initialize tracker with selected ROI
+    tracker_ = cv::TrackerKCF::create();
+    tracker_->init(frame, tracking_bbox_);
+    is_initialized_ = true;
+    cv::destroyAllWindows();
+}
+
+bool Tracker::updateTracker(cv::Mat& frame) {
+    return tracker_->update(frame, tracking_bbox_);
+}
 
 
 
