@@ -1,118 +1,15 @@
-#pragma once
-
-#include <rclcpp/rclcpp.hpp>
-#include <opencv2/opencv.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <opencv2/tracking.hpp>
-
-class Tracker : public rclcpp::Node {
-public:
-    Tracker();
-    ~Tracker();
-
-    void imageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
-
-private:
-    void initializeTracker(cv::Mat& frame);
-    bool updateTracker(cv::Mat& frame);
-
-    cv::Ptr<cv::Tracker> tracker_;
-    cv::Rect2d tracking_bbox_;
-    bool is_initialized_;
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr visualization_pub_;
-};
-
-#include "tracker.hpp"
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/imgproc.hpp>
-
-Tracker::Tracker() : Node("tracker"), is_initialized_(false) {
-    image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "/image", 10, std::bind(&Tracker::imageCallback, this, std::placeholders::_1));
-    visualization_pub_ = this->create_publisher<sensor_msgs::msg::Image>("/visualization", 10);
-}
-
-Tracker::~Tracker() {
-    // Destructor content if needed
-}
-
-void Tracker::imageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
-    cv_bridge::CvImagePtr cv_ptr;
-    try {
-        cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    } catch (cv_bridge::Exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-        return;
-    }
-
-    if (!is_initialized_) {
-        initializeTracker(cv_ptr->image);
-    } else {
-        if (updateTracker(cv_ptr->image)) {
-            // Draw bounding box on the image
-            cv::rectangle(cv_ptr->image, tracking_bbox_, cv::Scalar(0, 255, 0), 2, 1);
-        } else {
-            RCLCPP_WARN(this->get_logger(), "Tracking failure detected");
-        }
-    }
-
-    // Output modified frame
-    sensor_msgs::msg::Image::SharedPtr out_msg = cv_ptr->toImageMsg();
-    visualization_pub_->publish(*out_msg);
-}
-
-void Tracker::initializeTracker(cv::Mat& frame) {
-    // Define initial bounding box
-    tracking_bbox_ = cv::selectROI("Tracker", frame);
-    if (tracking_bbox_.width == 0 || tracking_bbox_.height == 0) {
-        RCLCPP_ERROR(this->get_logger(), "Invalid ROI selected");
-        return;
-    }
-
-    // Initialize tracker with selected ROI
-    tracker_ = cv::TrackerKCF::create();
-    tracker_->init(frame, tracking_bbox_);
-    is_initialized_ = true;
-    cv::destroyAllWindows();
-}
-
-bool Tracker::updateTracker(cv::Mat& frame) {
-    return tracker_->update(frame, tracking_bbox_);
-}
-
-
-
-
 colcon build --packages-select tutorial_pkg
 Starting >>> tutorial_pkg
-[Processing: tutorial_pkg]                             
-[Processing: tutorial_pkg]                                     
---- stderr: tutorial_pkg                                       
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/my_first_node.cpp: In member function ‘void MyNode::counter_callback(std_srvs::srv::Trigger_Request_<std::allocator<void> >::SharedPtr, std_srvs::srv::Trigger_Response_<std::allocator<void> >::SharedPtr)’:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/my_first_node.cpp:61:54: warning: unused parameter ‘req’ [-Wunused-parameter]
-   61 |     const std_srvs::srv::Trigger::Request::SharedPtr req,
-      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: In member function ‘void Tracker::_imageCallback(sensor_msgs::msg::Image_<std::allocator<void> >::SharedPtr)’:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:32:37: error: cannot convert ‘cv::Rect’ {aka ‘cv::Rect_<int>’} to ‘cv::Rect2d&’ {aka ‘cv::Rect_<double>&’}
-   32 |   bool ok = _tracker->update(frame, obj);
-      |                                     ^~~
-      |                                     |
-      |                                     cv::Rect {aka cv::Rect_<int>}
-In file included from /usr/include/opencv4/opencv2/tracking.hpp:281,
-                 from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:6,
-                 from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:1:
-/usr/include/opencv4/opencv2/tracking/tracker.hpp:547:57: note:   initializing argument 2 of ‘bool cv::Tracker::update(cv::InputArray, cv::Rect2d&)’
-  547 |   CV_WRAP bool update( InputArray image, CV_OUT Rect2d& boundingBox );
-      |                                                 ~~~~~~~~^~~~~~~~~~~
-make[2]: *** [CMakeFiles/tracker.dir/build.make:63: CMakeFiles/tracker.dir/src/tracker.cpp.o] Error 1
+--- stderr: tutorial_pkg                             
+/usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o: in function `_start':
+(.text+0x24): undefined reference to `main'
+collect2: error: ld returned 1 exit status
+make[2]: *** [CMakeFiles/tracker.dir/build.make:217: tracker] Error 1
 make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/tracker.dir/all] Error 2
-make[1]: *** Waiting for unfinished jobs....
 make: *** [Makefile:141: all] Error 2
 ---
-Failed   <<< tutorial_pkg [1min 5s, exited with code 2]
+Failed   <<< tutorial_pkg [5.18s, exited with code 2]
 
-Summary: 0 packages finished [1min 7s]
+Summary: 0 packages finished [7.06s]
   1 package failed: tutorial_pkg
   1 package had stderr output: tutorial_pkg
-husarion@husarion:~/augmented-robots/robots
