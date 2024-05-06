@@ -1,1 +1,67 @@
 
+WHEN I pute size=320 i get 
+
+/bin/python3 /app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py
+Traceback (most recent call last):
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py", line 74, in <module>
+    main()
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py", line 69, in main
+    rclpy.spin(node)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/__init__.py", line 191, in spin
+    executor.spin_once()
+  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 719, in spin_once
+    raise handler.exception()
+  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/task.py", line 239, in __call__
+    self._handler.send(None)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 429, in handler
+    await call_coroutine(entity, arg)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 343, in _execute_timer
+    await await_or_execute(tmr.callback)
+  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 118, in await_or_execute
+    return callback(*args)
+  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py", line 30, in timer_callback
+    results = self.model(frame , size=320) # from 640 just to increase FPS
+  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/engine/model.py", line 98, in __call__
+    return self.predict(source, stream, **kwargs)
+  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/engine/model.py", line 249, in predict
+    self.predictor = (predictor or self._smart_load('predictor'))(overrides=args, _callbacks=self.callbacks)
+  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/engine/predictor.py", line 87, in __init__
+    self.args = get_cfg(cfg, overrides)
+  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/cfg/__init__.py", line 113, in get_cfg
+    check_dict_alignment(cfg, overrides)
+  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/cfg/__init__.py", line 205, in check_dict_alignment
+    raise SyntaxError(string + CLI_HELP_MSG) from e
+SyntaxError: 'size' is not a valid YOLO argument. Similar arguments are i.e. ['visualize=False'].
+
+    Arguments received: ['yolo']. Ultralytics 'yolo' commands use the following syntax:
+
+        yolo TASK MODE ARGS
+
+        Where   TASK (optional) is one of ('detect', 'segment', 'classify', 'pose')
+                MODE (required) is one of ('train', 'val', 'predict', 'export', 'track', 'benchmark')
+                ARGS (optional) are any number of custom 'arg=value' pairs like 'imgsz=320' that override defaults.
+                    See all ARGS at https://docs.ultralytics.com/usage/cfg or with 'yolo cfg'
+
+    1. Train a detection model for 10 epochs with an initial learning_rate of 0.01
+        yolo train data=coco128.yaml model=yolov8n.pt epochs=10 lr0=0.01
+
+    2. Predict a YouTube video using a pretrained segmentation model at image size 320:
+        yolo predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320
+
+    3. Val a pretrained detection model at batch-size 1 and image size 640:
+        yolo val model=yolov8n.pt data=coco128.yaml batch=1 imgsz=640
+
+    4. Export a YOLOv8n classification model to ONNX format at image size 224 by 128 (no TASK required)
+        yolo export model=yolov8n-cls.pt format=onnx imgsz=224,128
+
+    5. Run special commands:
+        yolo help
+        yolo checks
+        yolo version
+        yolo settings
+        yolo copy-cfg
+        yolo cfg
+
+    Docs: https://docs.ultralytics.com
+    Community: https://community.ultralytics.com
+    GitHub: https://github.com/ultralytics/ultralytics
