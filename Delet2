@@ -1,4 +1,4 @@
- colcon build --packages-select tutorial_pkg
+colcon build --packages-select tutorial_pkg
 Starting >>> tutorial_pkg
 [Processing: tutorial_pkg]                             
 [Processing: tutorial_pkg]                                     
@@ -8,29 +8,25 @@ Starting >>> tutorial_pkg
    61 |     const std_srvs::srv::Trigger::Request::SharedPtr req,
       |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~
 /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: In member function ‘void Tracker::_imageCallback(sensor_msgs::msg::Image_<std::allocator<void> >::SharedPtr)’:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:22:25: error: could not convert ‘((Tracker*)this)->Tracker::_initTracker(frame, obj)’ from ‘void’ to ‘bool’
-   22 |         if (_initTracker(frame, obj)) {
-      |             ~~~~~~~~~~~~^~~~~~~~~~~~
-      |                         |
-      |                         void
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: At global scope:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:45:6: error: no declaration matches ‘bool Tracker::_initTracker(cv::Mat&, cv::Rect2d&)’
-   45 | bool Tracker::_initTracker(cv::Mat& frame, cv::Rect2d& obj) {
-      |      ^~~~~~~
-In file included from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:1:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:20:8: note: candidate is: ‘void Tracker::_initTracker(cv::Mat&, cv::Rect2d&)’
-   20 |   void _initTracker(cv::Mat& frame, cv::Rect2d& obj); // Change to cv::Rect2d&
-      |        ^~~~~~~~~~~~
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:9:7: note: ‘class Tracker’ defined here
-    9 | class Tracker : public rclcpp::Node
-      |       ^~~~~~~
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:32:37: error: cannot convert ‘cv::Rect’ {aka ‘cv::Rect_<int>’} to ‘cv::Rect2d&’ {aka ‘cv::Rect_<double>&’}
+   32 |   bool ok = _tracker->update(frame, obj);
+      |                                     ^~~
+      |                                     |
+      |                                     cv::Rect {aka cv::Rect_<int>}
+In file included from /usr/include/opencv4/opencv2/tracking.hpp:281,
+                 from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:6,
+                 from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:1:
+/usr/include/opencv4/opencv2/tracking/tracker.hpp:547:57: note:   initializing argument 2 of ‘bool cv::Tracker::update(cv::InputArray, cv::Rect2d&)’
+  547 |   CV_WRAP bool update( InputArray image, CV_OUT Rect2d& boundingBox );
+      |                                                 ~~~~~~~~^~~~~~~~~~~
 make[2]: *** [CMakeFiles/tracker.dir/build.make:63: CMakeFiles/tracker.dir/src/tracker.cpp.o] Error 1
 make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/tracker.dir/all] Error 2
 make[1]: *** Waiting for unfinished jobs....
 make: *** [Makefile:141: all] Error 2
 ---
-Failed   <<< tutorial_pkg [1min 7s, exited with code 2]
+Failed   <<< tutorial_pkg [1min 5s, exited with code 2]
 
-Summary: 0 packages finished [1min 10s]
+Summary: 0 packages finished [1min 7s]
   1 package failed: tutorial_pkg
   1 package had stderr output: tutorial_pkg
+husarion@husarion:~/augmented-robots/robots
