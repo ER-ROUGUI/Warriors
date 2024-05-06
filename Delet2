@@ -1,4 +1,4 @@
-colcon build --packages-select tutorial_pkg
+ colcon build --packages-select tutorial_pkg
 Starting >>> tutorial_pkg
 [Processing: tutorial_pkg]                             
 [Processing: tutorial_pkg]                                     
@@ -8,7 +8,7 @@ Starting >>> tutorial_pkg
    61 |     const std_srvs::srv::Trigger::Request::SharedPtr req,
       |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~
 /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: In member function ‘void Tracker::_imageCallback(sensor_msgs::msg::Image_<std::allocator<void> >::SharedPtr)’:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:22:25: error: could not convert ‘((Tracker*)this)->Tracker::_initTracker(cv::Mat(frame), obj)’ from ‘void’ to ‘bool’
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:22:25: error: could not convert ‘((Tracker*)this)->Tracker::_initTracker(frame, obj)’ from ‘void’ to ‘bool’
    22 |         if (_initTracker(frame, obj)) {
       |             ~~~~~~~~~~~~^~~~~~~~~~~~
       |                         |
@@ -18,23 +18,19 @@ Starting >>> tutorial_pkg
    45 | bool Tracker::_initTracker(cv::Mat& frame, cv::Rect2d& obj) {
       |      ^~~~~~~
 In file included from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:1:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:20:8: note: candidate is: ‘void Tracker::_initTracker(cv::Mat, cv::Rect2d&)’
-   20 |   void _initTracker(cv::Mat frame, cv::Rect2d& obj); // Change to cv::Rect2d&
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:20:8: note: candidate is: ‘void Tracker::_initTracker(cv::Mat&, cv::Rect2d&)’
+   20 |   void _initTracker(cv::Mat& frame, cv::Rect2d& obj); // Change to cv::Rect2d&
       |        ^~~~~~~~~~~~
 /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:9:7: note: ‘class Tracker’ defined here
     9 | class Tracker : public rclcpp::Node
       |       ^~~~~~~
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: In member function ‘void Tracker::_designateControl(geometry_msgs::msg::Twist&, const Rect2d&, uint32_t)’:
-/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:61:20: error: ‘clamp’ is not a member of ‘std’
-   61 |     ang_vel = std::clamp(ang_vel, -MAX_ANG_VEL, MAX_ANG_VEL);
-      |                    ^~~~~
 make[2]: *** [CMakeFiles/tracker.dir/build.make:63: CMakeFiles/tracker.dir/src/tracker.cpp.o] Error 1
 make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/tracker.dir/all] Error 2
 make[1]: *** Waiting for unfinished jobs....
 make: *** [Makefile:141: all] Error 2
 ---
-Failed   <<< tutorial_pkg [1min 6s, exited with code 2]
+Failed   <<< tutorial_pkg [1min 7s, exited with code 2]
 
-Summary: 0 packages finished [1min 9s]
+Summary: 0 packages finished [1min 10s]
   1 package failed: tutorial_pkg
   1 package had stderr output: tutorial_pkg
