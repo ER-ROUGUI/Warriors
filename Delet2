@@ -1,3 +1,58 @@
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from std_msgs.msg import String
+from cv_bridge import CvBridge
+import cv2
+from yolov5 import YOLO  # Import YOLO from Ultralytics
+
+class ImagePublisher(Node):
+    def __init__(self):
+        super().__init__('yolo_detection_publisher')
+        self.publisher_ = self.create_publisher(String, '/detection_info', 10)
+        self.bridge = CvBridge()
+        
+        # Initialize the video capture with the WiFi camera's stream URL
+        self.cap = cv2.VideoCapture('rtsp://camera_ip_address/stream')  # Update with your camera's RTSP stream URL
+        
+        # Load your custom model
+        self.model = YOLO('path_to_your_model.pt')  # Make sure this path is correct
+
+        self.timer_period = 0.1  # seconds
+        self.timer = self.create_timer(self.timer_period, self.timer_callback)
+
+    def timer_callback(self):
+        ret, frame = self.cap.read()
+        if not ret:
+            return
+        
+        # Run YOLO inference
+        results = self.model(frame)
+        results.render()  # Draw detections on the image
+
+        for *xyxy, conf, cls in results.xyxy[0]:
+            label = self.model.names[int(cls)]
+            message = f'Detected {label} with confidence {conf:.2f}'
+            self.publisher_.publish(String(data=message))
+        
+        # Optionally display the image
+        cv2.imshow('YOLOv8 Detection', cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        cv2.waitKey(1)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ImagePublisher()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
 #! /usr/bin/env python3
 import rclpy
 from rclpy.node import Node
