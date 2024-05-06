@@ -1,6 +1,72 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+import cv2
+import numpy as np
+import torch
+
+# Load the custom YOLO model
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='path_to_your_model.pt')
+
+class ImagePublisher(Node):
+
+    def __init__(self):
+        super().__init__('image_publisher')
+        self.publisher_ = self.create_publisher(Image, '/camera/image_raw/compressed', 10)
+        self.bridge = CvBridge()
+        self.cap = cv2.VideoCapture('rtsp://your_camera_ip/stream')  # Adjust the URL to your camera's specifications
+
+        self.timer_period = 0.1  # Adjust as needed
+        self.timer = self.create_timer(self.timer_period, self.timer_callback)
+
+    def timer_callback(self):
+        ret, frame = self.cap.read()  # Read a frame from the camera
+        if not ret:
+            return
+
+        # Convert frame to RGB from BGR (OpenCV uses BGR by default)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Perform inference
+        results = model(frame_rgb)
+
+        # Extract data from results
+        results_data = results.pandas().xyxy[0]
+
+        # Optionally: Draw results on frame
+        for index, row in results_data.iterrows():
+            cv2.rectangle(frame, (int(row['xmin']), int(row['ymin'])), (int(row['xmax']), int(row['ymax'])), (255, 0, 0), 2)
+            cv2.putText(frame, row['name'], (int(row['xmin']), int(row['ymin'] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+
+        # Convert back to BGR for OpenCV
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        # Encode to JPEG
+        _, compressed_image_data = cv2.imencode('.jpg', frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 20])
+        compressed_image_data = compressed_image_data.tobytes()
+
+        msg = Image()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.data = compressed_image_data
+        msg.encoding = 'jpeg'
+        self.publisher_.publish(msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    image_publisher = ImagePublisher()
+    rclpy.spin(image_publisher)
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
 from geometry_msgs.msg import PointStamped
 from cv_bridge import CvBridge
 import cv2
