@@ -1,186 +1,32 @@
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
-import cv2
-from ultralytics import YOLO  # Import YOLO from the Ultralytics package
+i did the build of this packages i get this erro 
 
-class ImagePublisher(Node):
-    def __init__(self):
-        super().__init__('image_publisher_Q18')
-        self.publisher_ = self.create_publisher(String, '/detection_info', 10)
-        self.cap = cv2.VideoCapture('rtsp://192.168.10.128/D67A352BADCA434D3574A552880231CF&1')
+colcon build --packages-select tutorial_pkg
+Starting >>> tutorial_pkg
+[Processing: tutorial_pkg]                             
+--- stderr: tutorial_pkg                               
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/my_first_node.cpp: In member function ‘void MyNode::counter_callback(std_srvs::srv::Trigger_Request_<std::allocator<void> >::SharedPtr, std_srvs::srv::Trigger_Response_<std::allocator<void> >::SharedPtr)’:
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/my_first_node.cpp:61:54: warning: unused parameter ‘req’ [-Wunused-parameter]
+   61 |     const std_srvs::srv::Trigger::Request::SharedPtr req,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: In member function ‘void Tracker::_imageCallback(sensor_msgs::msg::Image_<std::allocator<void> >::SharedPtr)’:
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:32:37: error: cannot convert ‘cv::Rect’ {aka ‘cv::Rect_<int>’} to ‘cv::Rect2d&’ {aka ‘cv::Rect_<double>&’}
+   32 |   bool ok = _tracker->update(frame, obj);
+      |                                     ^~~
+      |                                     |
+      |                                     cv::Rect {aka cv::Rect_<int>}
+In file included from /usr/include/opencv4/opencv2/tracking.hpp:281,
+                 from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:6,
+                 from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:1:
+/usr/include/opencv4/opencv2/tracking/tracker.hpp:547:57: note:   initializing argument 2 of ‘bool cv::Tracker::update(cv::InputArray, cv::Rect2d&)’
+  547 |   CV_WRAP bool update( InputArray image, CV_OUT Rect2d& boundingBox );
+      |                                                 ~~~~~~~~^~~~~~~~~~~
+make[2]: *** [CMakeFiles/tracker.dir/build.make:63: CMakeFiles/tracker.dir/src/tracker.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/tracker.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+make: *** [Makefile:141: all] Error 2
+---
+Failed   <<< tutorial_pkg [57.7s, exited with code 2]
 
-        if not self.cap.isOpened():
-            self.get_logger().error('Failed to open camera stream.')
-            raise ConnectionError("Failed to open camera stream.")
-
-        model_file = "/app/augmented-robots/data_image/yolov8n_custom/yolov8m_custom.pt"
-        self.model = YOLO(model_file)  # Ensure that this path is correct and the model is compatible
-
-        self.timer_period = 0.1  # Adjust this to match the framerate of your camera or processing capability
-        self.timer = self.create_timer(self.timer_period, self.timer_callback)
-
-    def timer_callback(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            self.get_logger().error('Failed to capture frame from camera')
-            return
-
-        # Process the frame
-        results = self.model(frame, size=320)  # Using 'size' might need to be replaced based on the actual API
-        detections = results.pred[0]
-
-        # Display the processed frame with detections
-        for det in detections:
-            xmin, ymin, xmax, ymax, conf, cls_id = det.tolist()
-            if conf > 0.5:
-                cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
-                class_name = self.model.names[int(cls_id)]
-                label = f"{class_name} {conf:.2f}"
-                cv2.putText(frame, label, (int(xmin), int(ymin - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                message = f'Detected {class_name} with confidence {conf:.2f}'
-                self.publisher_.publish(String(data=message))
-        
-        cv2.imshow('YOLOv8 Detection', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            rclpy.shutdown()
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = ImagePublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
-
-
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
-import cv2
-from yolov5 import YOLO  # Ensure correct installation and path
-
-class ImagePublisher(Node):
-    def __init__(self):
-        super().__init__('image_publisher_Q18')
-        self.publisher_ = self.create_publisher(String, '/detection_info', 10)
-
-        # Set up the camera stream
-        self.cap = cv2.VideoCapture('rtsp://192.168.10.128/D67A352BADCA434D3574A552880231CF&1')
-        if not self.cap.isOpened():
-            self.get_logger().error('Failed to open camera stream.')
-            raise ConnectionError("Failed to open camera stream.")
-
-        # Load the model
-        model_file = "/app/augmented-robots/data_image/yolov8n_custom/yolov8m_custom.pt"
-        self.model = YOLO(model_file)
-
-        # Set the timer period for the callback
-        self.timer_period = 0.033  # Aim for ~30 FPS
-        self.timer = self.create_timer(self.timer_period, self.timer_callback)
-
-    def timer_callback(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            self.get_logger().error('Failed to capture frame from camera')
-            return
-
-        # Process the frame for detections with adjusted image size for speed
-        results = self.model(frame, imgsz=320)  # Adjust imgsz for speed/accuracy trade-off
-        results.render()  # Draw boxes and labels on the image
-
-        # Handle the detection results
-        for *xyxy, conf, cls in results.xyxy[0]:
-            if conf > 0.5:
-                class_name = self.model.names[int(cls)]
-                message = f'Detected {class_name} with confidence {conf:.2f}'
-                self.publisher_.publish(String(data=message))
-                self.get_logger().info(message)
-
-        # Optionally display the processed image
-        cv2.imshow('YOLOv8 Detection', frame)
-        if cv2.waitKey(1) == ord('q'):  # Press 'q' to quit
-            rclpy.shutdown()
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = ImagePublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
-
-
-
-
-WHEN I pute size=320 i get 
-
-/bin/python3 /app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py
-Traceback (most recent call last):
-  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py", line 74, in <module>
-    main()
-  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py", line 69, in main
-    rclpy.spin(node)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/__init__.py", line 191, in spin
-    executor.spin_once()
-  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 719, in spin_once
-    raise handler.exception()
-  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/task.py", line 239, in __call__
-    self._handler.send(None)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 429, in handler
-    await call_coroutine(entity, arg)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 343, in _execute_timer
-    await await_or_execute(tmr.callback)
-  File "/opt/ros/foxy/lib/python3.8/site-packages/rclpy/executors.py", line 118, in await_or_execute
-    return callback(*args)
-  File "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/smart_robots_controller/image_publisher_Q18.py", line 30, in timer_callback
-    results = self.model(frame , size=320) # from 640 just to increase FPS
-  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/engine/model.py", line 98, in __call__
-    return self.predict(source, stream, **kwargs)
-  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/engine/model.py", line 249, in predict
-    self.predictor = (predictor or self._smart_load('predictor'))(overrides=args, _callbacks=self.callbacks)
-  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/engine/predictor.py", line 87, in __init__
-    self.args = get_cfg(cfg, overrides)
-  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/cfg/__init__.py", line 113, in get_cfg
-    check_dict_alignment(cfg, overrides)
-  File "/home/orange/.local/lib/python3.8/site-packages/ultralytics/cfg/__init__.py", line 205, in check_dict_alignment
-    raise SyntaxError(string + CLI_HELP_MSG) from e
-SyntaxError: 'size' is not a valid YOLO argument. Similar arguments are i.e. ['visualize=False'].
-
-    Arguments received: ['yolo']. Ultralytics 'yolo' commands use the following syntax:
-
-        yolo TASK MODE ARGS
-
-        Where   TASK (optional) is one of ('detect', 'segment', 'classify', 'pose')
-                MODE (required) is one of ('train', 'val', 'predict', 'export', 'track', 'benchmark')
-                ARGS (optional) are any number of custom 'arg=value' pairs like 'imgsz=320' that override defaults.
-                    See all ARGS at https://docs.ultralytics.com/usage/cfg or with 'yolo cfg'
-
-    1. Train a detection model for 10 epochs with an initial learning_rate of 0.01
-        yolo train data=coco128.yaml model=yolov8n.pt epochs=10 lr0=0.01
-
-    2. Predict a YouTube video using a pretrained segmentation model at image size 320:
-        yolo predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320
-
-    3. Val a pretrained detection model at batch-size 1 and image size 640:
-        yolo val model=yolov8n.pt data=coco128.yaml batch=1 imgsz=640
-
-    4. Export a YOLOv8n classification model to ONNX format at image size 224 by 128 (no TASK required)
-        yolo export model=yolov8n-cls.pt format=onnx imgsz=224,128
-
-    5. Run special commands:
-        yolo help
-        yolo checks
-        yolo version
-        yolo settings
-        yolo copy-cfg
-        yolo cfg
-
-    Docs: https://docs.ultralytics.com
-    Community: https://community.ultralytics.com
-    GitHub: https://github.com/ultralytics/ultralytics
+Summary: 0 packages finished [59.7s]
+  1 package failed: tutorial_pkg
+  1 package had stderr output: tutorial_pkg
