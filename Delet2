@@ -1,97 +1,40 @@
+colcon build --packages-select tutorial_pkg
+Starting >>> tutorial_pkg
+[Processing: tutorial_pkg]                             
+[Processing: tutorial_pkg]                                     
+--- stderr: tutorial_pkg                                       
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/my_first_node.cpp: In member function ‘void MyNode::counter_callback(std_srvs::srv::Trigger_Request_<std::allocator<void> >::SharedPtr, std_srvs::srv::Trigger_Response_<std::allocator<void> >::SharedPtr)’:
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/my_first_node.cpp:61:54: warning: unused parameter ‘req’ [-Wunused-parameter]
+   61 |     const std_srvs::srv::Trigger::Request::SharedPtr req,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: In member function ‘void Tracker::_imageCallback(sensor_msgs::msg::Image_<std::allocator<void> >::SharedPtr)’:
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:22:25: error: could not convert ‘((Tracker*)this)->Tracker::_initTracker(cv::Mat(frame), obj)’ from ‘void’ to ‘bool’
+   22 |         if (_initTracker(frame, obj)) {
+      |             ~~~~~~~~~~~~^~~~~~~~~~~~
+      |                         |
+      |                         void
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: At global scope:
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:45:6: error: no declaration matches ‘bool Tracker::_initTracker(cv::Mat&, cv::Rect2d&)’
+   45 | bool Tracker::_initTracker(cv::Mat& frame, cv::Rect2d& obj) {
+      |      ^~~~~~~
+In file included from /home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:1:
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:20:8: note: candidate is: ‘void Tracker::_initTracker(cv::Mat, cv::Rect2d&)’
+   20 |   void _initTracker(cv::Mat frame, cv::Rect2d& obj); // Change to cv::Rect2d&
+      |        ^~~~~~~~~~~~
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/include/tutorial_pkg/tracker.hpp:9:7: note: ‘class Tracker’ defined here
+    9 | class Tracker : public rclcpp::Node
+      |       ^~~~~~~
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp: In member function ‘void Tracker::_designateControl(geometry_msgs::msg::Twist&, const Rect2d&, uint32_t)’:
+/home/husarion/augmented-robots/robots/husarion_ws/src/tutorial_pkg/src/tracker.cpp:61:20: error: ‘clamp’ is not a member of ‘std’
+   61 |     ang_vel = std::clamp(ang_vel, -MAX_ANG_VEL, MAX_ANG_VEL);
+      |                    ^~~~~
+make[2]: *** [CMakeFiles/tracker.dir/build.make:63: CMakeFiles/tracker.dir/src/tracker.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/tracker.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+make: *** [Makefile:141: all] Error 2
+---
+Failed   <<< tutorial_pkg [1min 6s, exited with code 2]
 
-#pragma once
-
-#include <rclcpp/rclcpp.hpp>
-#include <geometry_msgs/msg/twist.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <opencv2/tracking.hpp>
-#include <opencv2/core/types.hpp> // Ensure to include this for cv::Rect2d
-
-class Tracker : public rclcpp::Node
-{
-public:
-  static constexpr float MIN_ANG_VEL = 0.15f;
-  static constexpr float MAX_ANG_VEL = 0.5f;
-  static constexpr float ANGULAR_GAIN = 1.7f;
-
-  Tracker();
-
-private:
-  void _imageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
-  void _initTracker(cv::Mat frame, cv::Rect2d& obj); // Change to cv::Rect2d&
-  void _designateControl(geometry_msgs::msg::Twist &vel_msg, const cv::Rect2d& obj, uint32_t img_width); // Use cv::Rect2d&
-
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _img_sub;
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _visualization_pub;
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _vel_pub;
-  cv::Ptr<cv::Tracker> _tracker;
-  bool _is_tracker_initialized;
-};
-
-
-
-#include "tutorial_pkg/tracker.hpp"
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-
-using namespace std::placeholders;
-
-Tracker::Tracker() : Node("tracker"), _is_tracker_initialized(false) {
-    _img_sub = create_subscription<sensor_msgs::msg::Image>(
-        "/image", rclcpp::SensorDataQoS(), std::bind(&Tracker::_imageCallback, this, _1));
-    _visualization_pub = create_publisher<sensor_msgs::msg::Image>("/visualization", rclcpp::SensorDataQoS());
-    _vel_pub = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", rclcpp::SystemDefaultsQoS());
-
-    RCLCPP_INFO(get_logger(), "Node started!");
-}
-
-void Tracker::_imageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
-    cv_bridge::CvImagePtr cv_image = cv_bridge::toCvCopy(msg, "bgr8");
-    cv::Mat frame = cv_image->image;
-    cv::Rect2d obj;
-
-    if (!_is_tracker_initialized) {
-        if (_initTracker(frame, obj)) {
-            _is_tracker_initialized = true;
-        } else {
-            RCLCPP_ERROR(get_logger(), "Failed to initialize tracker.");
-            return;
-        }
-    }
-
-    bool ok = _tracker->update(frame, obj);
-    if (ok) {
-        rectangle(frame, obj, cv::Scalar(255, 0, 0), 2, 1);
-        geometry_msgs::msg::Twist vel_msg;
-        _designateControl(vel_msg, obj, frame.cols);
-        _vel_pub->publish(vel_msg);
-    } else {
-        RCLCPP_WARN(get_logger(), "Tracking failure detected. Stop vehicle!");
-    }
-
-    cv_image->image = frame;
-    auto img_msg = cv_image->toImageMsg();
-    _visualization_pub->publish(*img_msg);
-}
-
-bool Tracker::_initTracker(cv::Mat& frame, cv::Rect2d& obj) {
-    cv::Rect roi = selectROI("ROI selector", frame, false, false);
-    if (roi.width == 0 || roi.height == 0) {
-        return false;  // Ensure valid ROI
-    }
-    obj = cv::Rect2d(roi.x, roi.y, roi.width, roi.height);
-    _tracker = cv::TrackerKCF::create();
-    _tracker->init(frame, obj);
-    return true;
-}
-
-void Tracker::_designateControl(geometry_msgs::msg::Twist& vel_msg, const cv::Rect2d& obj, uint32_t img_width) {
-    int obj_x_center = obj.x + obj.width / 2;
-    int px_to_center = img_width / 2 - obj_x_center;
-    float ang_vel = ANGULAR_GAIN * px_to_center / static_cast<float>(img_width);
-
-    ang_vel = std::clamp(ang_vel, -MAX_ANG_VEL, MAX_ANG_VEL);
-    vel_msg.angular.z = ang_vel;
-}
-
-
+Summary: 0 packages finished [1min 9s]
+  1 package failed: tutorial_pkg
+  1 package had stderr output: tutorial_pkg
