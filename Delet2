@@ -1,3 +1,33 @@
+#pragma once
+
+#include <rclcpp/rclcpp.hpp>
+#include <opencv2/opencv.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <opencv2/tracking.hpp>
+
+class Tracker : public rclcpp::Node {
+public:
+    Tracker();
+    ~Tracker();
+
+    void imageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
+
+private:
+    void initializeTracker(cv::Mat& frame);
+    bool updateTracker(cv::Mat& frame);
+
+    cv::Ptr<cv::Tracker> tracker_;
+    cv::Rect2d tracking_bbox_;
+    bool is_initialized_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr visualization_pub_;
+};
+
+
+
+
+
+
 colcon build --packages-select tutorial_pkg
 Starting >>> tutorial_pkg
 [Processing: tutorial_pkg]                             
