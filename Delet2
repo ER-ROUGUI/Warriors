@@ -4,3 +4,48 @@ mosquitto_sub -h 192.168.10.143 -t homein/# -p 1883 -v
 homein/core/iot/noises {"id": "1715075978", "timestamp": 1715075978850, "data": {"function": "NoiseSensor", "event": "Noise", "category": "Cough", "score": 0.96358025, "objectId": "Miaou"}, "type": "IOT", "subtype": "UPDATE", "source": "imanualv10"}
 
 update the previous subsciber to get the "Cough" and make a condition on it 
+
+
+
+import rclpy
+from rclpy.node import Node
+import json
+from std_msgs.msg import String
+
+class MQTTSubscriber(Node):
+    def __init__(self):
+        super().__init__('mqtt_subscriber')
+        self.subscription = self.create_subscription(
+            String, 
+            'homein/core/iot/noises', 
+            self.listener_callback, 
+            10)
+        self.subscription  # prevent unused variable warning
+
+    def listener_callback(self, msg):
+        self.get_logger().info(f"Received data: {msg.data}")
+        try:
+            data = json.loads(msg.data)
+            if data['data']['category'] == "Cough":
+                self.get_logger().info(f"Cough detected with score: {data['data']['score']}")
+                # Condition to trigger another action or service call
+                self.handle_cough_detected()
+        except json.JSONDecodeError as e:
+            self.get_logger().error(f"Failed to decode JSON: {e}")
+        except KeyError as e:
+            self.get_logger().error(f"Missing expected data in message: {e}")
+
+    def handle_cough_detected(self):
+        # This function should include the actions to be performed when "Cough" is detected
+        self.get_logger().info("Handling cough detection...")
+        # Example: Trigger a navigation task or send a notification
+
+def main(args=None):
+    rclpy.init(args=args)
+    mqtt_subscriber = MQTTSubscriber()
+    rclpy.spin(mqtt_subscriber)
+    mqtt_subscriber.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
