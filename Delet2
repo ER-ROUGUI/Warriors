@@ -2,6 +2,88 @@
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+from rclpy.duration import Duration
+
+class PointFollower(Node):
+    def __init__(self):
+        super().__init__('point_follower')
+        self.navigator = BasicNavigator()
+
+        self.subscription = self.create_subscription(
+            String,
+            '/navigation_trigger',
+            self.trigger_callback,
+            10
+        )
+        self.subscription  # prevent unused variable warning
+
+    def trigger_callback(self, msg):
+        if msg.data == "Ding":
+            self.navigate()
+
+    def navigate(self):
+        self.navigator.lifecycleStartup()
+        self.navigator.waitUntilNav2Active()
+
+        # Define your waypoints here
+        goal_poses = [
+            self.create_goal_pose(1.0, -2.0, -0.28, 0.95),
+            self.create_goal_pose(4.0, -3.0, 0.707, 0.95),
+            self.create_goal_pose(3.0, -5.0, 0.707, 0.707),
+            self.create_goal_pose(-7.0, 1.0, 0.707, 0.707),
+            self.create_goal_pose(4.0, 3.0, 0.99, 0.99)
+        ]
+
+        self.navigator.getPath(goal_poses[0], goal_poses)
+        nav_start = self.navigator.get_clock().now()
+        self.navigator.followWaypoints(goal_poses)
+
+        while not self.navigator.isTaskComplete():
+            feedback = self.navigator.getFeedback()
+            if feedback:
+                print(f'Executing current waypoint: {feedback.current_waypoint + 1}/{len(goal_poses)}')
+            if self.navigator.get_clock().now() - nav_start > Duration(seconds=600.0):
+                self.navigator.cancelTask()
+
+        result = self.navigator.getResult()
+        if result == TaskResult.SUCCEEDED:
+            print('Goal succeeded!')
+        elif result == TaskResult.CANCELED:
+            print('Goal was canceled!')
+        elif result == TaskResult.FAILED:
+            print('Goal failed!')
+        else:
+            print('Goal has an invalid return status!')
+
+        self.navigator.lifecycleShutdown()
+
+    def create_goal_pose(self, x, y, z_orientation, w_orientation):
+        goal_pose = PoseStamped()
+        goal_pose.header.frame_id = 'map'
+        goal_pose.header.stamp = self.navigator.get_clock().now().to_msg()
+        goal_pose.pose.position.x = x
+        goal_pose.pose.position.y = y
+        goal_pose.pose.orientation.z = z_orientation
+        goal_pose.pose.orientation.w = w_orientation
+        return goal_pose
+
+def main(args=None):
+    rclpy.init(args=args)
+    point_follower = PointFollower()
+    rclpy.spin(point_follower)
+    point_follower.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+#! /usr/bin/env python3
+from geometry_msgs.msg import PoseStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+import rclpy
 from rclpy.duration import Duration
 from std_msgs.msg import String
 
