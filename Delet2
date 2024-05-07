@@ -3,6 +3,72 @@ from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
 from rclpy.duration import Duration
+from std_msgs.msg import String
+
+class PointFollower(Node):
+    def __init__(self):
+        super().__init__('point_follower')
+        self.navigator = BasicNavigator()
+
+        self.subscription = self.create_subscription(
+            String,
+            '/navigation_trigger',
+            self.trigger_callback,
+            10
+        )
+        self.subscription  # prevent unused variable warning
+
+    def trigger_callback(self, msg):
+        if msg.data == "Ding":
+            self.navigate()
+
+    def navigate(self):
+        self.navigator.lifecycleStartup()
+        self.navigator.waitUntilNav2Active()
+
+        goal_poses = [PoseStamped() for _ in range(5)]  # Your goal poses setup here
+        # Set goals, header, etc., as previously defined
+
+        self.navigator.getPath(goal_poses[0], goal_poses)
+        nav_start = self.navigator.get_clock().now()
+        self.navigator.followWaypoints(goal_poses)
+
+        while not self.navigator.isTaskComplete():
+            feedback = self.navigator.getFeedback()
+            if feedback:
+                print(f'Executing current waypoint: {feedback.current_waypoint + 1}/{len(goal_poses)}')
+            if self.navigator.get_clock().now() - nav_start > Duration(seconds=600.0):
+                self.navigator.cancelTask()
+
+        result = self.navigator.getResult()
+        if result == TaskResult.SUCCEEDED:
+            print('Goal succeeded!')
+        elif result == TaskResult.CANCELED:
+            print('Goal was canceled!')
+        elif result == TaskResult.FAILED:
+            print('Goal failed!')
+        else:
+            print('Goal has an invalid return status!')
+
+        self.navigator.lifecycleShutdown()
+
+def main(args=None):
+    rclpy.init(args=args)
+    point_follower = PointFollower()
+    rclpy.spin(point_follower)
+    point_follower.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+#! /usr/bin/env python3
+from geometry_msgs.msg import PoseStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+import rclpy
+from rclpy.duration import Duration
 
 """
 navigation turtlebot to go to poses.
