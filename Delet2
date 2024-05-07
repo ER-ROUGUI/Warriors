@@ -1,3 +1,46 @@
+import rclpy
+from rclpy.node import Node
+import paho.mqtt.client as mqtt
+from std_msgs.msg import String
+
+class MQTTSubscriber(Node):
+    def __init__(self):
+        super().__init__('mqtt_subscriber')
+        self.publisher_ = self.create_publisher(String, 'ros_topic_from_mqtt', 10)
+        self.mqtt_client = mqtt.Client()
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        self.mqtt_client.connect("192.168.10.143", 1883, 60)
+        self.mqtt_client.loop_start()
+
+    def on_connect(self, client, userdata, flags, rc):
+        self.get_logger().info("Connected with result code "+str(rc))
+        self.mqtt_client.subscribe("homein/core/iot/noises")
+
+    def on_message(self, client, userdata, msg):
+        message = str(msg.payload.decode("utf-8"))
+        self.get_logger().info(f"Received '{message}' from MQTT")
+        # Here you can parse the message and check conditions
+        if "Cough" in message:
+            ros_msg = String()
+            ros_msg.data = "Detected Cough"
+            self.publisher_.publish(ros_msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    mqtt_subscriber = MQTTSubscriber()
+    rclpy.spin(mqtt_subscriber)
+    mqtt_subscriber.mqtt_client.loop_stop()
+    mqtt_subscriber.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
 this is how i use command line to listen to the topic on the pecific ip and port 
 
 mosquitto_sub -h 192.168.10.143 -t homein/# -p 1883 -v
