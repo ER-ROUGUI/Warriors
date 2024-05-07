@@ -1,305 +1,79 @@
-this code give a good result of detection #!/usr/bin/env python3
-from ultralytics import YOLO
-import cv2
-import math 
-import open3d as o3d 
-import numpy as np
-import pyrealsense2 as rs
+this is a taskmanager node 
 
-pipeline = rs.pipeline()
-config = rs.config()
-config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 6)
-profile = pipeline.start(config)
-
-
-# model_file = "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/config/yolov8n.pt"
-model_file = "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/config/yolov8m_custom.pt"
-model = YOLO(model_file)
-
-try:
-    while True :
-        frames = pipeline.wait_for_frames()
-        color_frame =frames.get_color_frame()
-        depth_frame = frames.get_depth_frame()
-        if not color_frame :
-            continue
-        
-        depth_image = np.asanyarray(depth_frame.get_data())
-        intrinsic= profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
-        pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(intrinsic.width, intrinsic.height, intrinsic.fx, intrinsic.fy, intrinsic.ppx, intrinsic.ppy)
-        image = np.asanyarray(color_frame.get_data())
-
-        resultes = model(image)
-        results = model.predict(source=image, show=True, stream=True, verbose=False)  # set the show on True to show automaticlly the bbox
-
-        for r in results:
-            boxes = r.boxes
-            for box in boxes:
-
-                x1, y1, x2, y2 = box.xyxy[0]
-                confidence =box.conf[0]
-                cls = int(box.cls[0])
-
-                # if model.names[cls] == "OpenDoor" and confidence > 0.5 : # we can use door or window instead person !!!
-                    # cv2.rectangle(image , (int(x1),int(y1)) , (int(x2) , int(y2)) , (0,255,0) , 2)
-
-
-                    # (x_center,y_center) = (x2 + x1)/2, (y2+y1)/2 
-                    # center_coordinates = (int(x_center),int(y_center))
-                    # zDepth = depth_frame.get_distance(int(x_center),int(y_center))
-                    
-                    # print(zDepth)
-
-                    # frame_center = (image.shape[1]//2 ,image.shape[0]//2)
-                    # error_x = center_coordinates[0] - frame_center[0]
-                    # error_y = center_coordinates[1] - frame_center[1]
-
-                    # print(f"Error: x ={error_x} , y={error_y}")
-
-                # cls = int(box.cls[0])                                                                         
-                # print("Class name -->", classNames[cls])
-                
-        #         x1, y1, x2,s y2 = int(x1), int(y1), int(x2), int(y2) # convert to int values
-
-        #     # put box in cam        
-            # cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 255), 3)
-            # cv2.circle(image, center_coordinates, 5, (0,0,255), 5)
-        
-        # cv2.imshow('Webcam', image)
-
-        if cv2.waitKey(1)& 0xFF == ord('q'):
-            break
-finally:
-
-    pipeline.stop()
-    cv2.destroyAllWindows()
-
-# # object classes
-# classNames = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
-#               "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-#               "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
-#               "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat",
-#               "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
-#               "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli",
-#               "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed",
-#               "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone",
-#               "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
-#               "teddy bear", "hair drier", "toothbrush"
-#               ]
-
-
-# while True:
-#     success, img = cap.read()
-#     results = model(img, stream=True)
-
-#     # coordinates
-#     for r in results:
-#         boxes = r.boxes
-
-#         for box in boxes:
-#             # bounding box
-#             x1, y1, x2, y2 = box.xyxy[0]
-#             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2) # convert to int values
-
-#             # put box in cam
-#             cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
-
-#             # confidence
-#             confidence = math.ceil((box.conf[0]*100))/100
-#             print("Confidence --->",confidence)
-
-#             # class name
-#             cls = int(box.cls[0])
-#             print("Class name -->", classNames[cls])
-
-#             # object details
-#             org = [x1, y1]
-#             font = cv2.FONT_HERSHEY_SIMPLEX
-#             fontScale = 1
-#             color = (255, 0, 0)
-#             thickness = 2
-
-#             cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
-
-#     cv2.imshow('Webcam', img)
-#     if cv2.waitKey(1) == ord('q'):
-#         break
-
-# cap.release()
-# cv2.destroyAllWindows()
-
-
-but this one no 
-
-#! /usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from sensor_msgs.msg import Image
-from geometry_msgs.msg import PointStamped
-import cv2
-import numpy as np
-from cv_bridge import CvBridge
-from ultralytics import YOLO
-import open3d as o3d 
-from ament_index_python.packages import get_package_share_directory
-import pyrealsense2 as rs
-import os
+from geometry_msgs.msg import PoseStamped
+import yaml
 
-
-# smart_robots_dir = get_package_share_directory("smart_robots_controller")
-# model_file = os.path.join(smart_robots_dir, "config", "yolov8n.pt")
-
-# model_file = "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/config/yolov8n.pt"  # thsi is the default 
-# model_file ="/app/augmented-robots/data_image/yolov8n_custom/yolov8m_custom.pt" # this is my custom model trained on "OpenDoor, ClosedDoor"
-model_file = "/app/augmented-robots/server/nux_ws/src/smart_robots_controller/config/yolov8m_custom.pt"
-model = YOLO(model_file)
-class ImageSubscriber(Node):
-
+class TaskManager(Node):
     def __init__(self):
-        super().__init__('image_subscriber_yolo')
-        self.image_sub = self.create_subscription(Image, '/camera/image_raw/compressed', self.image_callback, 10)
-        self.depth_sub = self.create_subscription(PointStamped, 'image/zDepth', self.zDepth_callback, 10)
+        super().__init__('task_manager')
+        self.robot_specs = {}
+        self.robot_navigators = {}  # Stores navigator instances or command publishers for each robot
 
-        self.label_pub = self.create_publisher(String , '/detected_status' , 10)
-        self.last_detected = False
+        self.specs_subscription = self.create_subscription(
+            String,
+            '/robot_specifications',
+            self.handle_robot_specs,
+            10)
 
+    def handle_robot_specs(self, msg):
+        specs = yaml.safe_load(msg.data)
+        robot_name = specs["robot_name"]
+        self.robot_specs[robot_name] = specs
+        self.get_logger().info(f'Received specs from {robot_name}: {specs}')
 
-        self.bridge = CvBridge()
+        # Initialize navigator for the robot if not already done
+        if robot_name not in self.robot_navigators:
+            self.robot_navigators[robot_name] = self.create_robot_navigator(robot_name)
+            self.get_logger().info(f"Navigator initialized for {robot_name}")
 
-        timer_period = 0.5
+        self.evaluate_task()
 
-        self.center_pub = self.create_publisher(PointStamped , '/image/center_coordinates' , 10)
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.i = 0
-        self.center_coordinates = []
+    def create_robot_navigator(self, robot_name):
+        # This function creates a publisher for the specific robot
+        navigator_publisher = self.create_publisher(
+            PoseStamped,
+            f'/{robot_name}/goal_pose',
+            10)
+        return navigator_publisher
 
+    def handle_robot_pose(self, pose_msg, robot_name):
+        # Update robot's position in the stored specifications
+        if robot_name in self.robot_specs:
+            self.robot_specs[robot_name]['current_location'] = [
+                pose_msg.pose.position.x,
+                pose_msg.pose.position.y
+            ]
+            self.get_logger().info(f"Updated position for {robot_name}: {self.robot_specs[robot_name]['current_location']}")
 
-    def image_callback(self, msg):
-        # global center_coordinates
+    def evaluate_task(self):
+        # Example task processing logic here
+        # Decide which robot to assign the task to based on criteria
+        chosen_robot_name = "robot1"  # Placeholder for chosen robot based on your criteria
+        self.assign_task(chosen_robot_name, [2.0, 3.0])
 
+    def assign_task(self, robot_name, task_location):
+        if robot_name in self.robot_navigators:
+            goal_pose = PoseStamped()
+            goal_pose.header.frame_id = 'map'
+            goal_pose.header.stamp = self.get_clock().now().to_msg()
+            goal_pose.pose.position.x = task_location[0]
+            goal_pose.pose.position.y = task_location[1]
+            goal_pose.pose.orientation.w = 1.0  # Assuming the robot faces the task directly
 
-        decoded_data = np.frombuffer(msg.data, dtype=np.uint8)
-        decoded_image = cv2.imdecode(decoded_data, cv2.IMREAD_COLOR) 
-        rbg_image = cv2.cvtColor(decoded_image , cv2.COLOR_BGR2RGB)
+            self.get_logger().info(
+                f"Assigning task to {robot_name}. Sending to location {task_location}"
+            )
+            # Publish the goal pose to the specific robot's navigator
+            self.robot_navigators[robot_name].publish(goal_pose)
 
-        # results = model(rbg_image)
-        results = model.predict(source=rbg_image, show=False, stream=True, verbose=False) 
-        detected_class = False
-
-        for r in results:
-            boxes = r.boxes
-            for box in boxes:
-            # bounding box
-                #print(box.xyxy[0])
-                x1, y1, x2, y2 = box.xyxy[0]
-                confidence =box.conf[0]
-                cls = int(box.cls[0])
-
-                class_name = model.names[cls] 
-
-                if class_name == "OpenDoor" or class_name=="ClosedDoor" and confidence > 0.5 : # we can use door open/closed or window instead person !!! (collect data)
-
-                    detected_class = True
-
-                    (x_center,y_center) = (x2 + x1)/2, (y2+y1)/2 
-                    center_coordinates = (int(x_center),int(y_center))
-
-                    if class_name =="OpenDoor" :
-                        cv2.putText(rbg_image, "The door is open" , (center_coordinates[0], center_coordinates[1]) ,
-                                    cv2.FONT_HERSHEY_SIMPLEX , 1, (0,255,0) ,2, cv2.LINE_AA)
-                        
-                    else:
-
-                        cv2.putText(rbg_image, "The door is Closed" , (center_coordinates[0], center_coordinates[1]) ,
-                                    cv2.FONT_HERSHEY_SIMPLEX , 1, (0,255,0) ,2, cv2.LINE_AA)
-
-
-                    try:
-                        
-                        # zDepth = None  #depth_frame.get_distance(int(x_center),int(y_center))
-                        print("Nothing just  ....." )
-
-                    except (AttributeError , NameError):
-                        print("Depth unavailable")
-
-                    
-                    # print(zDepth)
-
-                    frame_center = (rbg_image.shape[1]//2 ,rbg_image.shape[0]//2)
-                    error_x = center_coordinates[0] - frame_center[0]
-                    error_y = center_coordinates[1] - frame_center[1]
-
-                    self.center_coordinates.append(center_coordinates)
-
-                    # print(f"Error: x ={error_x} , y={error_y}")
-
-                    # center_msg = PointStamped()
-                    # center_msg.header.stamp = self.get_clock().now().to_msg()
-                    # center_msg.point.x = x_center
-                    # center_msg.point.y = y_center
-                    # self.center_pub.publish(center_msg)
-                    # self.get_logger().info(f"Center coordinates : ({x_center} , {y_center})")
-                    
-                    if center_coordinates is not None :
-            
-                        cv2.circle(rbg_image, center_coordinates, 5, (0,0,255), 5)
-
-
-        if detected_class:
-            if not self.last_detected:
-                self.label_pub.publish(String(data=f"the {class_name} has been detected")) 
-                self.last_detected = True
-
-        else:
-
-            if self.last_detected:
-                self.label_pub.publish(String(data="No detection yet !!"))      
-                self.last_detected = False
-               
-
-        cv2.imshow('RealSense Image subscriber', rbg_image)
-        cv2.waitKey(1)
-
-    def timer_callback(self):
-
-
-        if len(self.center_coordinates)>0 :
-
-            x_center , y_center = self.center_coordinates[-1]
-
-            msg = PointStamped()
-            msg.header.stamp = self. get_clock().now().to_msg()
-            msg.point.x = float(x_center)
-            msg.point.y = float(y_center)
-
-            self.center_pub.publish(msg)
-            self.get_logger().info(f"Publishing center Coordinates: {msg.point.x} ,{msg.point.y}")
-            self.i += 1
-        else:
-            self.get_logger().info('No center Coordinates:')
-
-    def zDepth_callback(self ,msg):
-
-        msg = PointStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        # msg.point.z = float(x_center)
-        # x_center  =center_msg.point.x
-        # y_center =center_msg.point.y
-        zDepth  = msg.point.z
-
-        self.get_logger().info(f"Publishing zDepth value: {zDepth}")
-        
-
- 
-
-
-
-def main():
-    rclpy.init()
-    node = ImageSubscriber()
-    rclpy.spin(node)
+def main(args=None):
+    rclpy.init(args=args)
+    task_manager = TaskManager()
+    rclpy.spin(task_manager)
+    task_manager.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
