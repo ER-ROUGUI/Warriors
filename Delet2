@@ -2,6 +2,58 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from std_msgs.srv import Trigger
+
+class MQTTSubscriber(Node):
+    def __init__(self):
+        super().__init__('mqtt_subscriber')
+        self.subscription = self.create_subscription(
+            String,
+            '/mqtt_topic',
+            self.listener_callback,
+            10)
+        self.client = self.create_client(Trigger, 'trigger_goal_service')
+        while not self.client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.request = Trigger.Request()
+
+    def listener_callback(self, msg):
+        self.get_logger().info(f'I heard: "{msg.data}"')
+        if msg.data == "activate_task":
+            self.trigger_goal()
+
+    def trigger_goal(self):
+        future = self.client.call_async(self.request)
+        future.add_done_callback(self.goal_response_callback)
+
+    def goal_response_callback(self, future):
+        try:
+            response = future.result()
+            if response.success:
+                self.get_logger().info('Goal triggered successfully!')
+            else:
+                self.get_logger().info('Failed to trigger goal.')
+        except Exception as e:
+            self.get_logger().info('Service call failed %r' % (e,))
+
+def main(args=None):
+    rclpy.init(args=args)
+    mqtt_subscriber = MQTTSubscriber()
+    rclpy.spin(mqtt_subscriber)
+    mqtt_subscriber.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+# File: mqtt_subscriber.py
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
 
 class MQTTSubscriber(Node):
     def __init__(self):
