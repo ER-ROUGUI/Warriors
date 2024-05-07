@@ -1,3 +1,40 @@
+# mqtt_subscriber.py
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+
+class MQTTSubscriber(Node):
+    def __init__(self):
+        super().__init__('mqtt_subscriber')
+        self.subscription = self.create_subscription(
+            String,
+            'homein',
+            self.listener_callback,
+            10)
+        self.task_pub = self.create_publisher(String, '/task_trigger', 10)
+
+    def listener_callback(self, msg):
+        if msg.data == "noise":
+            task_msg = String()
+            task_msg.data = "start"
+            self.task_pub.publish(task_msg)
+            self.get_logger().info(f'Received from MQTT: "{msg.data}", triggering task.')
+
+def main(args=None):
+    rclpy.init(args=args)
+    mqtt_subscriber = MQTTSubscriber()
+    rclpy.spin(mqtt_subscriber)
+    mqtt_subscriber.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
 this is a taskmanager node 
 
 import rclpy
