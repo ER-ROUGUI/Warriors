@@ -1,96 +1,130 @@
+this is the code that send waypoint to the robot 
+
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
+
+
+## just for testing
+
+
+def main():
+    rclpy.init()
+
+    navigator = BasicNavigator()
+
+    # Set our demo's initial pose
+    initial_pose = PoseStamped()
+    initial_pose.header.frame_id = 'map'
+    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
+    initial_pose.pose.position.x = 0.448
+    initial_pose.pose.position.y = -1.13
+    initial_pose.pose.orientation.z = -0.28
+    initial_pose.pose.orientation.w = 0.95
+    navigator.setInitialPose(initial_pose)
+
+    navigator.waitUntilNav2Active()
+
+    goal_pose = PoseStamped()
+    goal_pose.header.frame_id = 'map'
+    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
+    goal_pose.pose.position.x = 1.0
+    goal_pose.pose.position.y = -2.0
+    goal_pose.pose.orientation.w = 0.95
+
+    path = navigator.getPath(initial_pose, goal_pose)
+    smoothed_path = navigator.smoothPath(path)
+
+    # Follow path
+    navigator.followPath(smoothed_path)
+
+    i = 0
+    while not navigator.isTaskComplete():
+
+        i += 1
+        feedback = navigator.getFeedback()
+        if feedback and i % 5 == 0:
+            print(
+                'Estimated distance remaining to goal position: '
+                + '{0:.3f}'.format(feedback.distance_to_goal)
+                + '\nCurrent speed of the robot: '
+                + '{0:.3f}'.format(feedback.speed)
+            )
+
+    # Do something depending on the return code
+    result = navigator.getResult()
+    if result == TaskResult.SUCCEEDED:
+        print('Goal succeeded!')
+    elif result == TaskResult.CANCELED:
+        print('Goal was canceled!')
+    elif result == TaskResult.FAILED:
+        print('Goal failed!')
+    else:
+        print('Goal has an invalid return status!')
+
+    navigator.lifecycleShutdown()
+
+    exit(0)
+
+
+if __name__ == '__main__':
+    main()
+
+and this is the code that subscriber to a mqtt topic 
+
+import rclpy
 from rclpy.node import Node
+import paho.mqtt.client as mqtt
 from std_msgs.msg import String
-from rclpy.duration import Duration
-
-class PointFollower(Node):
+"""
+this code will subscriber to the mqtt topic sent by MIaou
+"""
+class MQTTSubscriber(Node):
     def __init__(self):
-        super().__init__('point_follower')
-        self.navigator = BasicNavigator()
+        super().__init__('mqtt_subscriber2')
 
-        self.subscription = self.create_subscription(
-            String,
-            '/Knock_detected',
-            self.trigger_callback,
-            10
-        )
+        topi_name = '/knock_detected'
+        self.publisher_ = self.create_publisher(String, topi_name, 10)
 
-    def trigger_callback(self, msg):
-        if msg.data == "Knock":
-            self.get_logger().info('Knock detected. Initiating navigation.')
-            self.navigate()
+        self.mqtt_client = mqtt.Client()
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        self.mqtt_client.connect("192.168.10.182", 1883, 60)
+        self.mqtt_client.loop_start()
 
-    def navigate(self):
-        self.navigator.lifecycleStartup()
-        if not self.navigator.waitUntilNav2Active(timeout_sec=5):
-            self.get_logger().error('Navigator did not become active, aborting...')
-            return
+    def on_connect(self, client, userdata, flags, rc):
+        self.get_logger().info("Connected with result code "+str(rc))
+        self.mqtt_client.subscribe("homein/core/iot/noises")
 
-        self.set_goals_and_navigate()
+    def on_message(self, client, userdata, msg):
+        import json
+        message = msg.payload.decode("utf-8")
+        self.get_logger().info(f"Received '{message}' from MQTT")
 
-    def set_goals_and_navigate(self):
-        initial_pose = PoseStamped()
-        initial_pose.header.frame_id = 'map'
-        initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        initial_pose.pose.position.x = 0.2
-        initial_pose.pose.position.y = -1.0
-        initial_pose.pose.orientation.z = -0.28
-        initial_pose.pose.orientation.w = 0.95
+        msg_dictionnary = json.loads(message)
 
-        goal_poses = [self.create_goal_pose(1.0, -2.0, -0.28, 0.95),
-                      self.create_goal_pose(4.0, -3.0, 0.707, 0.95),
-                      self.create_goal_pose(3.0, -5.0, 0.707, 0.707),
-                      self.create_goal_pose(-7.0, 1.0, 0.707, 0.707),
-                      self.create_goal_pose(4.0, 3.0, 0.99, 0.99)]
+        msg_name = "Knock"
 
-        self.navigator.getPath(initial_pose, goal_poses)
-        self.navigator.followWaypoints(goal_poses)
+        if msg_dictionnary["data"]["category"] == msg_name :
+            ros_msg = String()
+            ros_msg.data = msg_name
+            self.publisher_.publish(ros_msg)
 
-        while not self.navigator.isTaskComplete():
-            feedback = self.navigator.getFeedback()
-            if feedback:
-                self.get_logger().info(f'Executing waypoint: {feedback.current_waypoint + 1} of {len(goal_poses)}')
-
-        self.check_navigator_result()
-
-    def create_goal_pose(self, x, y, z_orientation, w_orientation):
-        goal_pose = PoseStamped()
-        goal_pose.header.frame_id = 'map'
-        goal_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose.pose.position.x = x
-        goal_pose.pose.position.y = y
-        goal_pose.pose.orientation.z = z_orientation
-        goal_pose.pose.orientation.w = w_orientation
-        return goal_pose
-
-    def check_navigator_result(self):
-        result = self.navigator.getResult()
-        if result == TaskResult.SUCCEEDED:
-            self.get_logger().info('Goal successfully reached!')
-        elif result == TaskResult.CANCELED:
-            self.get_logger().info('Goal was canceled.')
-        elif result == TaskResult.FAILED:
-            self.get_logger().info('Goal failed to complete.')
         else:
-            self.get_logger().info('Unexpected result code from navigator.')
+            self.get_logger().info("no msg recieved")
 
 def main(args=None):
     rclpy.init(args=args)
-    point_follower = PointFollower()
-    rclpy.spin(point_follower)
-    point_follower.destroy_node()
+    mqtt_subscriber = MQTTSubscriber()
+    rclpy.spin(mqtt_subscriber)
+    mqtt_subscriber.mqtt_client.loop_stop()
+    mqtt_subscriber.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
 
-
-
-
-
-
+i try this to give an condition before sending an waypoint but does not work
 
 #! /usr/bin/env python3
 from geometry_msgs.msg import PoseStamped
@@ -117,19 +151,31 @@ class PointFollower(Node):
         if msg.data == "Knock":
             self.get_logger().info('the info from the MIAOU has been detected')
             self.navigate()
+        else:
+
+            self.get_logger().info('the info from the MIAOU has not been detected !!!')
 
     def navigate(self):
         self.navigator.lifecycleStartup()
         self.navigator.waitUntilNav2Active()
 
         # Define your waypoints here
+        # goal_poses = [
+        #     self.create_goal_pose(1.0, 4.0, 0, 0.95),
+        #     self.create_goal_pose(4.0, 4.0, 0.707, 0.95),
+        #     self.create_goal_pose(3.0, 7.0, 0.99, 0.99)
+        # ]
+
+        # Define your waypoints here
         initial_pose = PoseStamped()
         initial_pose.header.frame_id = 'map'
         initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        initial_pose.pose.position.x = 0.2
-        initial_pose.pose.position.y = -1.0
-        initial_pose.pose.orientation.z = -0.28
-        initial_pose.pose.orientation.w = 0.95
+        initial_pose.pose.position.x = 0.49
+        initial_pose.pose.position.y = 0.50
+        initial_pose.pose.orientation.z = 0.70
+        initial_pose.pose.orientation.w = 0.71
+
+        self.navigator.setInitialPose(initial_pose)
 
         goal_poses = []
 
@@ -137,18 +183,18 @@ class PointFollower(Node):
         goal_pose1.header.frame_id = 'map'
         goal_pose1.header.stamp = self.navigator.get_clock().now().to_msg()
         goal_pose1.pose.position.x = 1.0
-        goal_pose1.pose.position.y = -2.0
-        goal_pose1.pose.orientation.w = -0.28
-        goal_pose1.pose.orientation.z = 0.95
+        goal_pose1.pose.position.y = 4.0
+        goal_pose1.pose.orientation.w = 0.2
+        goal_pose1.pose.orientation.z = 0.99
         goal_poses.append(goal_pose1)
 
         goal_pose2 = PoseStamped()
         goal_pose2.header.frame_id = 'map'
         goal_pose2.header.stamp = self.navigator.get_clock().now().to_msg()
         goal_pose2.pose.position.x = 4.0
-        goal_pose2.pose.position.y = -3.0
-        goal_pose2.pose.orientation.w = 0.95
-        goal_pose2.pose.orientation.z = 0.707
+        goal_pose2.pose.position.y = 4.0
+        goal_pose2.pose.orientation.w = 0.55
+        goal_pose2.pose.orientation.z = 0.83
         goal_poses.append(goal_pose2)
 
         goal_pose3 = PoseStamped()
