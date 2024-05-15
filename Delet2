@@ -1,78 +1,55 @@
-this commande give thie 
-
-mosquitto_sub -h 192.168.10.143 -t homein/# -v
-homein/core/iot/noises {"id": "1715780844", "timestamp": 1715780844709, "data": {"function": "NoiseSensor", "event": "Noise", "category": "Ding", "score": 0.83597827, "objectId": "Miaou"}, "type": "IOT", "subtype": "UPDATE", "source": "imanualv10"}
-
-
-but this code
-
+i try this with ros 2 its work grate 
+import rclpy
+from rclpy.node import Node
 import paho.mqtt.client as mqtt
-import yaml
-import json
-import os
-
+from std_msgs.msg import String
 """
-this code will subscriber to the mqtt topic sent by IOT Manager then send an suspicious info via MQTT topic to the Task manager
+this code will subscriber to the mqtt topic sent by MIaou
 """
+class MQTTSubscriber(Node):
+    def __init__(self):
+        super().__init__('mqtt_subscriber2')
 
-# mqtt_config_file = "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/config/config_file.yaml"
+        topi_name = '/knock_detected'
+        self.publisher_ = self.create_publisher(String, topi_name, 10)
 
-def load_config(filename):
+        self.mqtt_client = mqtt.Client()
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        self.mqtt_client.connect("192.168.10.143", 1883, 60)
+        self.mqtt_client.loop_start()
 
-    base_path = os.path.dirname(__file__)
-    config_path = os.path.join(base_path , 'config' , filename)
-    with open(config_path , 'r') as file :
+    def on_connect(self, client, userdata, flags, rc):
+        self.get_logger().info("Connected with result code "+str(rc))
+        self.mqtt_client.subscribe("homein/core/iot/noises")
 
-        return yaml.safe_load(file)
+    def on_message(self, client, userdata, msg):
+        import json
+        message = msg.payload.decode("utf-8")
+        self.get_logger().info(f"Received '{message}' from MQTT")
 
+        msg_dictionnary = json.loads(message)
 
-config = load_config('mqtt_config.yaml')
-print(config)
-mqtt_settings = config['mqtt_settings']
+        msg_name = "Ding"
 
-def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
-    client.subscribe(mqtt_settings['mqtt_topic_sub'])
+        if msg_dictionnary["data"]["category"] == msg_name :
+            ros_msg = String()
+            ros_msg.data = msg_name
+            self.publisher_.publish(ros_msg)
 
+        else:
+            self.get_logger().info("no msg recieved")
 
-def on_message(client, userdata, msg):
+def main(args=None):
+    rclpy.init(args=args)
+    mqtt_subscriber = MQTTSubscriber()
+    rclpy.spin(mqtt_subscriber)
+    mqtt_subscriber.mqtt_client.loop_stop()
+    mqtt_subscriber.destroy_node()
+    rclpy.shutdown()
 
-    message = msg.payload.decode("utf-8")
-    print(f"Received '{message}' from topic '{msg.topic}'")
-    try:
-        data = json.loads(message)
-
-        # if "Key" in data and data["Key"] == "something" :
-        response = "Triger action based on recieved msg"
-
-        client.publish(mqtt_settings['mqtt_topic_pub'], response)
-        print("ddd")
-    except json.JSONDecodeError:
-        print("Error")
-
-client = mqtt.Client()
-client.on_connect = on_connect()
-client.on_message = on_message()
-
-client.connect(mqtt_settings['mqtt_brocker'] , mqtt_settings['mqtt_port'] , 60)
-client.loop_forever()
-
+if __name__ == '__main__':
+    main()
 
 
-give this 
-
- /bin/python3 /app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/suspicious_info.py
-{'mqtt_settings': {'mqtt_brocker': '192.168.10.143', 'mqtt_port': 1883, 'mqtt_topic_sub': '/homein/core/iot/#', 'mqtt_topic_pub': '/suspicious'}}
-Exception ignored in: <function Client.__del__ at 0x7f701665bb80>
-Traceback (most recent call last):
-  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 874, in __del__
-    self._reset_sockets()
-  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 1133, in _reset_sockets
-    self._sock_close()
-  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 1119, in _sock_close
-    if not self._sock:
-AttributeError: 'Client' object has no attribute '_sock'
-Traceback (most recent call last):
-  File "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/suspicious_info.py", line 45, in <module>
-    client = mqtt.Client()
-TypeError: __init__() missing 1 required positional argument: 'callback_api_version'
+but i want a scripte python without ros2
