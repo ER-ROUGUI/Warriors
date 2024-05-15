@@ -1,364 +1,78 @@
-from geometry_msgs.msg import PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
-from rclpy.duration import Duration
+this commande give thie 
 
-class PointFollower(Node):
-    def __init__(self):
-        super().__init__('waypoint_follower')
-        self.navigator = BasicNavigator()
-        self.subscription = self.create_subscription(
-            String,
-            '/Knock_detected',
-            self.trigger_callback,
-            10
-        )
-
-    def trigger_callback(self, msg):
-        if msg.data == "Knock":
-            self.get_logger().info('Knock detected, initiating navigation.')
-            self.setup_and_navigate()
-
-    def setup_and_navigate(self):
-        # Ensure lifecycle is started and navigator is active
-        self.navigator.lifecycleStartup()
-        if not self.navigator.waitUntilNav2Active(timeout_sec=10):
-            self.get_logger().error('Navigator did not become active.')
-            return
-
-        # Define initial pose and goal poses
-        self.define_poses_and_navigate()
-
-    def define_poses_and_navigate(self):
-        initial_pose = PoseStamped()
-        initial_pose.header.frame_id = 'map'
-        initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        initial_pose.pose.position.x = 0.2
-        initial_pose.pose.position.y = -1.0
-        initial_pose.pose.orientation.z = -0.28
-        initial_pose.pose.orientation.w = 0.95
-        self.navigator.setInitialPose(initial_pose)
-
-        goal_poses = [
-            self.create_goal_pose(1.0, -2.0, -0.28, 0.95),
-            self.create_goal_pose(4.0, -3.0, 0.707, 0.95),
-            self.create_goal_pose(3.0, -5.0, 0.707, 0.707),
-            self.create_goal_pose(-7.0, 1.0, 0.707, 0.707),
-            self.create_goal_pose(4.0, 3.0, 0.99, 0.99)
-        ]
-
-        self.navigator.getPath(initial_pose, goal_poses)
-        self.navigator.followWaypoints(goal_poses)
-
-        while not self.navigator.isTaskComplete():
-            feedback = self.navigator.getFeedback()
-            if feedback:
-                self.get_logger().info(f'Executing waypoint: {feedback.current_waypoint + 1}/{len(goal_poses)}')
-
-        self.check_navigator_result()
-
-    def create_goal_pose(self, x, y, z, w):
-        goal_pose = PoseStamped()
-        goal_pose.header.frame_id = 'map'
-        goal_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose.pose.position.x = x
-        goal_pose.pose.position.y = y
-        goal_pose.pose.orientation.z = z
-        goal_pose.pose.orientation.w = w
-        return goal_pose
-
-    def check_navigator_result(self):
-        result = self.navigator.getResult()
-        if result == TaskResult.SUCCEEDED:
-            self.get_logger().info('Navigation to goal succeeded.')
-        elif result == TaskResult.CANCELED:
-            self.get_logger().info('Navigation was canceled.')
-        elif result == TaskResult.FAILED:
-            self.get_logger().info('Navigation failed.')
-        else:
-            self.get_logger().info('Unexpected result status.')
-
-def main(args=None):
-    rclpy.init(args=args)
-    point_follower = PointFollower()
-    rclpy.spin(point_follower)
-    point_follower.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
+mosquitto_sub -h 192.168.10.143 -t homein/# -v
+homein/core/iot/noises {"id": "1715780844", "timestamp": 1715780844709, "data": {"function": "NoiseSensor", "event": "Noise", "category": "Ding", "score": 0.83597827, "objectId": "Miaou"}, "type": "IOT", "subtype": "UPDATE", "source": "imanualv10"}
 
 
+but this code
 
-
-
-this is the code that send waypoint to the robot 
-
-from geometry_msgs.msg import PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
-import rclpy
-
-
-## just for testing
-
-
-def main():
-    rclpy.init()
-
-    navigator = BasicNavigator()
-
-    # Set our demo's initial pose
-    initial_pose = PoseStamped()
-    initial_pose.header.frame_id = 'map'
-    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-    initial_pose.pose.position.x = 0.448
-    initial_pose.pose.position.y = -1.13
-    initial_pose.pose.orientation.z = -0.28
-    initial_pose.pose.orientation.w = 0.95
-    navigator.setInitialPose(initial_pose)
-
-    navigator.waitUntilNav2Active()
-
-    goal_pose = PoseStamped()
-    goal_pose.header.frame_id = 'map'
-    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose.pose.position.x = 1.0
-    goal_pose.pose.position.y = -2.0
-    goal_pose.pose.orientation.w = 0.95
-
-    path = navigator.getPath(initial_pose, goal_pose)
-    smoothed_path = navigator.smoothPath(path)
-
-    # Follow path
-    navigator.followPath(smoothed_path)
-
-    i = 0
-    while not navigator.isTaskComplete():
-
-        i += 1
-        feedback = navigator.getFeedback()
-        if feedback and i % 5 == 0:
-            print(
-                'Estimated distance remaining to goal position: '
-                + '{0:.3f}'.format(feedback.distance_to_goal)
-                + '\nCurrent speed of the robot: '
-                + '{0:.3f}'.format(feedback.speed)
-            )
-
-    # Do something depending on the return code
-    result = navigator.getResult()
-    if result == TaskResult.SUCCEEDED:
-        print('Goal succeeded!')
-    elif result == TaskResult.CANCELED:
-        print('Goal was canceled!')
-    elif result == TaskResult.FAILED:
-        print('Goal failed!')
-    else:
-        print('Goal has an invalid return status!')
-
-    navigator.lifecycleShutdown()
-
-    exit(0)
-
-
-if __name__ == '__main__':
-    main()
-
-and this is the code that subscriber to a mqtt topic 
-
-import rclpy
-from rclpy.node import Node
 import paho.mqtt.client as mqtt
-from std_msgs.msg import String
+import yaml
+import json
+import os
+
 """
-this code will subscriber to the mqtt topic sent by MIaou
+this code will subscriber to the mqtt topic sent by IOT Manager then send an suspicious info via MQTT topic to the Task manager
 """
-class MQTTSubscriber(Node):
-    def __init__(self):
-        super().__init__('mqtt_subscriber2')
 
-        topi_name = '/knock_detected'
-        self.publisher_ = self.create_publisher(String, topi_name, 10)
+# mqtt_config_file = "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/config/config_file.yaml"
 
-        self.mqtt_client = mqtt.Client()
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_message = self.on_message
-        self.mqtt_client.connect("192.168.10.182", 1883, 60)
-        self.mqtt_client.loop_start()
+def load_config(filename):
 
-    def on_connect(self, client, userdata, flags, rc):
-        self.get_logger().info("Connected with result code "+str(rc))
-        self.mqtt_client.subscribe("homein/core/iot/noises")
+    base_path = os.path.dirname(__file__)
+    config_path = os.path.join(base_path , 'config' , filename)
+    with open(config_path , 'r') as file :
 
-    def on_message(self, client, userdata, msg):
-        import json
-        message = msg.payload.decode("utf-8")
-        self.get_logger().info(f"Received '{message}' from MQTT")
+        return yaml.safe_load(file)
 
-        msg_dictionnary = json.loads(message)
 
-        msg_name = "Knock"
+config = load_config('mqtt_config.yaml')
+print(config)
+mqtt_settings = config['mqtt_settings']
 
-        if msg_dictionnary["data"]["category"] == msg_name :
-            ros_msg = String()
-            ros_msg.data = msg_name
-            self.publisher_.publish(ros_msg)
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
+    client.subscribe(mqtt_settings['mqtt_topic_sub'])
 
-        else:
-            self.get_logger().info("no msg recieved")
 
-def main(args=None):
-    rclpy.init(args=args)
-    mqtt_subscriber = MQTTSubscriber()
-    rclpy.spin(mqtt_subscriber)
-    mqtt_subscriber.mqtt_client.loop_stop()
-    mqtt_subscriber.destroy_node()
-    rclpy.shutdown()
+def on_message(client, userdata, msg):
 
-if __name__ == '__main__':
-    main()
+    message = msg.payload.decode("utf-8")
+    print(f"Received '{message}' from topic '{msg.topic}'")
+    try:
+        data = json.loads(message)
 
-i try this to give an condition before sending an waypoint but does not work
+        # if "Key" in data and data["Key"] == "something" :
+        response = "Triger action based on recieved msg"
 
-#! /usr/bin/env python3
-from geometry_msgs.msg import PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
-from rclpy.duration import Duration
+        client.publish(mqtt_settings['mqtt_topic_pub'], response)
+        print("ddd")
+    except json.JSONDecodeError:
+        print("Error")
 
-class PointFollower(Node):
-    def __init__(self):
-        super().__init__('waypoint_follower_copy')
-        self.navigator = BasicNavigator()
+client = mqtt.Client()
+client.on_connect = on_connect()
+client.on_message = on_message()
 
-        self.subscription = self.create_subscription(
-            String,
-            '/Knock_detected',
-            self.trigger_callback,
-            10
-        )
-        self.subscription  # prevent unused variable warning
+client.connect(mqtt_settings['mqtt_brocker'] , mqtt_settings['mqtt_port'] , 60)
+client.loop_forever()
 
-    def trigger_callback(self, msg):
-        if msg.data == "Knock":
-            self.get_logger().info('the info from the MIAOU has been detected')
-            self.navigate()
-        else:
 
-            self.get_logger().info('the info from the MIAOU has not been detected !!!')
 
-    def navigate(self):
-        self.navigator.lifecycleStartup()
-        self.navigator.waitUntilNav2Active()
+give this 
 
-        # Define your waypoints here
-        # goal_poses = [
-        #     self.create_goal_pose(1.0, 4.0, 0, 0.95),
-        #     self.create_goal_pose(4.0, 4.0, 0.707, 0.95),
-        #     self.create_goal_pose(3.0, 7.0, 0.99, 0.99)
-        # ]
-
-        # Define your waypoints here
-        initial_pose = PoseStamped()
-        initial_pose.header.frame_id = 'map'
-        initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        initial_pose.pose.position.x = 0.49
-        initial_pose.pose.position.y = 0.50
-        initial_pose.pose.orientation.z = 0.70
-        initial_pose.pose.orientation.w = 0.71
-
-        self.navigator.setInitialPose(initial_pose)
-
-        goal_poses = []
-
-        goal_pose1 = PoseStamped()
-        goal_pose1.header.frame_id = 'map'
-        goal_pose1.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose1.pose.position.x = 1.0
-        goal_pose1.pose.position.y = 4.0
-        goal_pose1.pose.orientation.w = 0.2
-        goal_pose1.pose.orientation.z = 0.99
-        goal_poses.append(goal_pose1)
-
-        goal_pose2 = PoseStamped()
-        goal_pose2.header.frame_id = 'map'
-        goal_pose2.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose2.pose.position.x = 4.0
-        goal_pose2.pose.position.y = 4.0
-        goal_pose2.pose.orientation.w = 0.55
-        goal_pose2.pose.orientation.z = 0.83
-        goal_poses.append(goal_pose2)
-
-        goal_pose3 = PoseStamped()
-        goal_pose3.header.frame_id = 'map'
-        goal_pose3.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose3.pose.position.x = 3.0
-        goal_pose3.pose.position.y = -5.0
-        goal_pose3.pose.orientation.w = 0.707
-        goal_pose3.pose.orientation.z = 0.707
-        goal_poses.append(goal_pose3)
-
-        goal_pose4 = PoseStamped()
-        goal_pose4.header.frame_id = 'map'
-        goal_pose4.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose4.pose.position.x = -7.0
-        goal_pose4.pose.position.y = 1.0
-        goal_pose4.pose.orientation.w = 0.707
-        goal_pose4.pose.orientation.z = 0.707
-        goal_poses.append(goal_pose4)
-
-        goal_pose5 = PoseStamped()
-        goal_pose5.header.frame_id = 'map'
-        goal_pose5.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose5.pose.position.x = 4.0
-        goal_pose5.pose.position.y = 3.0
-        goal_pose5.pose.orientation.w = 0.99
-        goal_pose5.pose.orientation.z = 0.99
-        goal_poses.append(goal_pose5)
-
-        self.navigator.getPath(initial_pose, goal_poses)
-        nav_start = self.navigator.get_clock().now()
-        self.navigator.followWaypoints(goal_poses)
-
-        while not self.navigator.isTaskComplete():
-            feedback = self.navigator.getFeedback()
-            if feedback:
-                print(f'Executing current waypoint: {feedback.current_waypoint + 1}/{len(goal_poses)}')
-                if self.navigator.get_clock().now() - nav_start > Duration(seconds=600.0):
-                    self.navigator.cancelTask()
-
-        result = self.navigator.getResult()
-        if result == TaskResult.SUCCEEDED:
-            print('Goal succeeded!')
-        elif result == TaskResult.CANCELED:
-            print('Goal was canceled!')
-        elif result == TaskResult.FAILED:
-            print('Goal failed!')
-        else:
-            print('Goal has an invalid return status!')
-
-        self.navigator.lifecycleShutdown()
-
-    # def create_goal_pose(self, x, y, z_orientation, w_orientation):
-    #     goal_pose = PoseStamped()
-    #     goal_pose.header.frame_id = 'map'
-    #     goal_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-    #     goal_pose.pose.position.x = x
-    #     goal_pose.pose.position.y = y
-    #     goal_pose.pose.orientation.z = z_orientation
-    #     goal_pose.pose.orientation.w = w_orientation
-    #     return goal_pose
-
-def main(args=None):
-    rclpy.init(args=args)
-    point_follower = PointFollower()
-    rclpy.spin(point_follower)
-    point_follower.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
+ /bin/python3 /app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/suspicious_info.py
+{'mqtt_settings': {'mqtt_brocker': '192.168.10.143', 'mqtt_port': 1883, 'mqtt_topic_sub': '/homein/core/iot/#', 'mqtt_topic_pub': '/suspicious'}}
+Exception ignored in: <function Client.__del__ at 0x7f701665bb80>
+Traceback (most recent call last):
+  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 874, in __del__
+    self._reset_sockets()
+  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 1133, in _reset_sockets
+    self._sock_close()
+  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 1119, in _sock_close
+    if not self._sock:
+AttributeError: 'Client' object has no attribute '_sock'
+Traceback (most recent call last):
+  File "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/suspicious_info.py", line 45, in <module>
+    client = mqtt.Client()
+TypeError: __init__() missing 1 required positional argument: 'callback_api_version'
