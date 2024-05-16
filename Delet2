@@ -1,3 +1,52 @@
+import paho.mqtt.client as mqtt
+import yaml
+import os
+
+def load_config(filename):
+    """Load configuration from a YAML file."""
+    base_path = os.path.dirname(__file__)
+    config_path = os.path.join(base_path, 'config', filename)
+    with open(config_path, 'r') as file:
+        return yaml.safe_load(file)
+
+def on_connect(client, userdata, flags, rc):
+    """The callback for when the client receives a CONNACK response from the server."""
+    if rc == 0:
+        print("Connected successfully to MQTT broker.")
+        client.subscribe(mqtt_settings['mqtt_topic_to_control'])
+        print(f"Subscribed to {mqtt_settings['mqtt_topic_to_control']}")
+    else:
+        print(f"Failed to connect with result code {rc}")
+
+def on_message(client, userdata, msg):
+    """The callback for when a PUBLISH message is received from the server."""
+    message = msg.payload.decode("utf-8")
+    print(f"Received message: '{message}' on topic '{msg.topic}'")
+
+def main():
+    config = load_config('mqtt_config.yaml')
+    mqtt_settings = config['mqtt_settings']
+
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    # Setup authentication if necessary
+    client.username_pw_set("your_username", "your_password")
+
+    # Connect to the local MQTT broker
+    client.connect(mqtt_settings['mqtt_local_brocker'], mqtt_settings['mqtt_port'], 60)
+
+    # Blocking call that processes network traffic, dispatches callbacks and handles reconnecting.
+    client.loop_forever()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
 ok now its working good 
 
 import paho.mqtt.client as mqtt
