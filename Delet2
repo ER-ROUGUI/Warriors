@@ -1,306 +1,69 @@
-import rclpy
-from rclpy.node import Node
-import paho.mqtt.client as mqtt
-import yaml
-import os
 from geometry_msgs.msg import PoseStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+import rclpy
 
-class MQTTROS2Node(Node):
-    def __init__(self, config_file):
-        super().__init__('mqtt_ros2_goal_sender')
-        self.config = self.load_config(config_file)
 
-        # MQTT setup
-        self.mqtt_client = mqtt.Client()
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_message = self.on_message
-        self.mqtt_client.username_pw_set(self.config['mqtt_settings']['username'], self.config['mqtt_settings']['password'])
-        self.mqtt_client.connect(self.config['mqtt_settings']['mqtt_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
-        self.mqtt_client.loop_start()
+## just for testing
 
-        # ROS2 publisher setup
-        self.publisher_ = self.create_publisher(PoseStamped, 'goal_pose', 10)
 
-    def load_config(self, filename):
-        base_path = os.path.dirname(__file__)
-        config_path = os.path.join(base_path, 'config', filename)
-        with open(config_path, 'r') as file:
-            return yaml.safe_load(file)
+def main():
+    rclpy.init()
 
-    def on_connect(self, client, userdata, flags, rc):
-        print(f"Connected with result code {rc}")
-        client.subscribe(self.config['mqtt_settings']['mqtt_topic_sub'])
+    navigator = BasicNavigator()
 
-    def on_message(self, client, userdata, msg):
-        message = msg.payload.decode("utf-8")
-        print(f"Received '{message}' from MQTT")
-        self.process_message(message)
+    # Set our demo's initial pose
+    initial_pose = PoseStamped()
+    initial_pose.header.frame_id = 'map'
+    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
+    initial_pose.pose.position.x = 0.448
+    initial_pose.pose.position.y = -1.13
+    initial_pose.pose.orientation.z = -0.28
+    initial_pose.pose.orientation.w = 0.95
+    navigator.setInitialPose(initial_pose)
 
-    def process_message(self, message):
-        # Assuming the message might dictate some goal position
-        goal_pose = PoseStamped()
-        goal_pose.header.stamp = self.get_clock().now().to_msg()
-        goal_pose.header.frame_id = 'map'
-        goal_pose.pose.position.x = 1.0  # Example values
-        goal_pose.pose.position.y = 1.0
-        goal_pose.pose.orientation.z = 0.0
-        goal_pose.pose.orientation.w = 1.0
-        self.publisher_.publish(goal_pose)
-        print("Published goal pose to ROS2")
+    navigator.waitUntilNav2Active()
 
-    def cleanup(self):
-        self.mqtt_client.loop_stop()
+    goal_pose = PoseStamped()
+    goal_pose.header.frame_id = 'map'
+    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
+    goal_pose.pose.position.x = 1.0
+    goal_pose.pose.position.y = -2.0
+    goal_pose.pose.orientation.w = 0.95
 
-def main(args=None):
-    rclpy.init(args=args)
-    node = MQTTROS2Node('mqtt_config.yaml')
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.cleanup()
-        node.destroy_node()
-        rclpy.shutdown()
+    path = navigator.getPath(initial_pose, goal_pose)
+    smoothed_path = navigator.smoothPath(path)
+
+    # Follow path
+    navigator.followPath(smoothed_path)
+
+    i = 0
+    while not navigator.isTaskComplete():
+
+        i += 1
+        feedback = navigator.getFeedback()
+        if feedback and i % 5 == 0:
+            print(
+                'Estimated distance remaining to goal position: '
+                + '{0:.3f}'.format(feedback.distance_to_goal)
+                + '\nCurrent speed of the robot: '
+                + '{0:.3f}'.format(feedback.speed)
+            )
+
+    # Do something depending on the return code
+    result = navigator.getResult()
+    if result == TaskResult.SUCCEEDED:
+        print('Goal succeeded!')
+    elif result == TaskResult.CANCELED:
+        print('Goal was canceled!')
+    elif result == TaskResult.FAILED:
+        print('Goal failed!')
+    else:
+        print('Goal has an invalid return status!')
+
+    navigator.lifecycleShutdown()
+
+    exit(0)
+
 
 if __name__ == '__main__':
     main()
-
-
-
-import paho.mqtt.client as mqtt
-import yaml
-import os
-
-def load_config(filename):
-    """Load configuration from a YAML file."""
-    base_path = os.path.dirname(__file__)
-    config_path = os.path.join(base_path, 'config', filename)
-    with open(config_path, 'r') as file:
-        return yaml.safe_load(file)
-
-def on_connect(client, userdata, flags, rc):
-    """The callback for when the client receives a CONNACK response from the server."""
-    if rc == 0:
-        print("Connected successfully to MQTT broker.")
-        client.subscribe(mqtt_settings['mqtt_topic_to_control'])
-        print(f"Subscribed to {mqtt_settings['mqtt_topic_to_control']}")
-    else:
-        print(f"Failed to connect with result code {rc}")
-
-def on_message(client, userdata, msg):
-    """The callback for when a PUBLISH message is received from the server."""
-    message = msg.payload.decode("utf-8")
-    print(f"Received message: '{message}' on topic '{msg.topic}'")
-
-def main():
-    config = load_config('mqtt_config.yaml')
-    mqtt_settings = config['mqtt_settings']
-
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    # Setup authentication if necessary
-    client.username_pw_set("your_username", "your_password")
-
-    # Connect to the local MQTT broker
-    client.connect(mqtt_settings['mqtt_local_brocker'], mqtt_settings['mqtt_port'], 60)
-
-    # Blocking call that processes network traffic, dispatches callbacks and handles reconnecting.
-    client.loop_forever()
-
-if __name__ == "__main__":
-    main()
-
-
-
-
-
-ok now its working good 
-
-import paho.mqtt.client as mqtt
-import yaml
-import json
-import os
-
-class MQTTManager:
-    def __init__(self, config_file):
-        self.config = self.load_config(config_file)
-        self.client = mqtt.Client()
-        self.local_client = mqtt.Client()
-
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-
-    def load_config(self, filename):
-        base_path = os.path.dirname(__file__)
-        config_path = os.path.join(base_path, 'config', filename)
-        with open(config_path, 'r') as file:
-            return yaml.safe_load(file)
-
-    def on_connect(self, client, userdata, flags, rc):
-        print(f"Connected with result code {rc}")
-        client.subscribe(self.config['mqtt_settings']['mqtt_topic_sub'])
-
-    def on_message(self, client, userdata, msg):
-        message = msg.payload.decode("utf-8")
-        print(f"Received '{message}' from topic '{msg.topic}'")
-        try:
-            data = json.loads(message)
-            if data["data"]["category"] == "Ding" : #and data["data"]["score"] > 0.6:
-                response = "suspicious"
-                self.local_client.publish(self.config['mqtt_settings']['mqtt_topic_pub'], response)
-                print(response)
-            else:
-                self.local_client.publish(self.config['mqtt_settings']['mqtt_topic_pub'], "nothiong recieved")
-                print("Everything is normal (:")
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
-
-    def connect_clients(self):
-        self.client.connect(self.config['mqtt_settings']['mqtt_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
-        self.local_client.username_pw_set("ros2", "niceiam21!")
-        self.local_client.connect(self.config['mqtt_settings']['mqtt_local_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
-        self.local_client.loop_start()
-
-    def loop_forever(self):
-        self.client.loop_forever()
-
-def main():
-    manager = MQTTManager('mqtt_config.yaml')
-    manager.connect_clients()
-    manager.loop_forever()
-
-if __name__ == "__main__":
-    main()
-
-
-
-
-# import paho.mqtt.client as mqtt
-# import yaml
-# import json
-# import os
-
-# """
-# this code will subscriber to the mqtt topic sent by IOT Manager then send an suspicious info via MQTT topic to the Task manager
-# """
-
-# # mqtt_config_file = "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/config/config_file.yaml"
-
-# def load_config(filename):
-
-#     base_path = os.path.dirname(__file__)
-#     config_path = os.path.join(base_path , 'config' , filename)
-#     with open(config_path , 'r') as file :
-
-#         return yaml.safe_load(file)
-
-
-# config = load_config('mqtt_config.yaml')
-# # print(config)
-# mqtt_settings = config['mqtt_settings']
-
-# def on_connect(client, userdata, flags, rc):
-#     print("Connected with result code "+str(rc))
-#     client.subscribe(mqtt_settings['mqtt_topic_sub'])
-
-
-# def on_message(client, userdata, msg):
-
-#     message = msg.payload.decode("utf-8")
-#     print(f"Received '{message}' from topic '{msg.topic}'")
-#     try:
-#         data = json.loads(message)
-#         if data["data"]["category"] == "Ding" :
-#             if data["data"]["score"] > 0.6 :
-
-
-#                 # if "Key" in data and data["Key"] == "something" :
-#                 response = "suspecious"
-
-#                 local_client.publish(mqtt_settings['mqtt_topic_pub'], response)
-#                 print(response)
-
-#         else:
-
-#             print("evrything is normal (: ")
-
-#     except json.JSONDecodeError as e:
-#         print(f"Error: {e}")
-# def main():
-
-#     client = mqtt.Client()
-#     client.on_connect = on_connect
-#     client.on_message = on_message
-#     client.connect(mqtt_settings['mqtt_brocker'] , mqtt_settings['mqtt_port'] , 60)
-
-#     local_client = mqtt.Client()
-#     local_client.connect(mqtt_settings['mqtt_local_brocker'] , mqtt_settings['mqtt_port'] , 60)
-#     local_client.loop_start()
-
-#     client.loop_forever()
-
-# if __name__ == "__main__" :
-#     main()
-
-
-send info to this code 
-what i need now is to add a publisher in this code when i receive "suspecious" in this topic mqtt_settings['mqtt_topic_pub'] 
-i will publish in another topic in the localhost named /to_control 
-
-import paho.mqtt.client as mqtt
-import yaml
-import json
-import os
-
-"""
-this code will subscriber to the mqtt topic "suspicious" sent by IOT Manager then chose one of the robot condidat to do task 
-and send mqtt trigger to smart robot controller Bloc
-"""
-
-# Load configuration from YAML file
-def load_config(filename):
-    base_path = os.path.dirname(__file__)
-    config_path = os.path.join(base_path, 'config', filename)
-    with open(config_path, 'r') as file:
-        return yaml.safe_load(file)
-
-config = load_config('mqtt_config.yaml')
-mqtt_settings = config['mqtt_settings']
-
-def on_connect(client, userdata, flags, rc):
-    if rc ==0 :
-        client.subscribe(mqtt_settings['mqtt_topic_pub'])
-        print("subscriber to topic IOT")
-        # print(f'suscribing to the topic{mqtt_settings['mqtt_topic_pub']}')
-
-    else:
-        print("failed to connect")
-
-        
-
-def on_message(client, userdata, msg):
-    message = msg.payload.decode("utf-8")
-    print(f"Received message from topic '{msg.topic}': {message}")
-
-def main():
-
-    config = load_config('mqtt_config.yaml')
-    mqtt_settings = config['mqtt_settings']
-
-    
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    # Connect to the local broker
-    client.username_pw_set("ros2", "niceiam21!")
-    client.connect(mqtt_settings['mqtt_local_brocker'], mqtt_settings['mqtt_port'], 60)
-
-    client.loop_forever()
-
-if __name__ == "__main__":
-    main()
-
