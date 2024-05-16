@@ -1,3 +1,16 @@
+use like this 
+
+this is the config 
+mqtt_settings: 
+  mqtt_brocker: "192.168.10.182" 
+  mqtt_local_brocker: "localhost"
+  mqtt_port: 1883
+  mqtt_topic_sub: homein/core/iot/# #/homein/core/iot/# << the same thing !!
+  mqtt_topic_pub: /suspicious
+
+this is the node taht subscriber the external topic and publish after processing 
+
+
 import paho.mqtt.client as mqtt
 import yaml
 import json
@@ -19,7 +32,7 @@ def load_config(filename):
 
 
 config = load_config('mqtt_config.yaml')
-print(config)
+# print(config)
 mqtt_settings = config['mqtt_settings']
 
 def on_connect(client, userdata, flags, rc):
@@ -34,16 +47,18 @@ def on_message(client, userdata, msg):
     try:
         data = json.loads(message)
         if data["data"]["category"] == "Ding" :
+            if data["data"]["score"] > 0.6 :
 
-            # if "Key" in data and data["Key"] == "something" :
-            response = "Triger action based on recieved msg"
 
-            # client.publish(mqtt_settings['mqtt_topic_pub'], response)
-            print(response)
+                # if "Key" in data and data["Key"] == "something" :
+                response = "suspecious"
+
+                client.publish(mqtt_settings['mqtt_topic_pub'], response)
+                print(response)
 
         else:
 
-            print("not")
+            print("evrything is normal (: ")
 
     except json.JSONDecodeError as e:
         print(f"Error: {e}")
@@ -59,22 +74,4 @@ def main():
 if __name__ == "__main__" :
     main()
 
-I get 
-
-/bin/python3 /app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/suspicious_info.py
-{'mqtt_settings': {'mqtt_brocker': '192.168.10.143', 'mqtt_port': 1883, 'mqtt_topic_sub': 'homein/#', 'mqtt_topic_pub': '/suspicious'}}
-Exception ignored in: <function Client.__del__ at 0x7fcb6750cb80>
-Traceback (most recent call last):
-  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 874, in __del__
-    self._reset_sockets()
-  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 1133, in _reset_sockets
-    self._sock_close()
-  File "/home/orange/.local/lib/python3.8/site-packages/paho/mqtt/client.py", line 1119, in _sock_close
-    if not self._sock:
-AttributeError: 'Client' object has no attribute '_sock'
-Traceback (most recent call last):
-  File "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/suspicious_info.py", line 60, in <module>
-    main()
-  File "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/suspicious_info.py", line 52, in main
-    client = mqtt.Client()
-TypeError: __init__() missing 1 required positional argument: 'callback_api_version'
+give the node that will subscribe 
