@@ -52,10 +52,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-
-
-
+this is the subscriber to the localhost 
 
 import paho.mqtt.client as mqtt
 import yaml
@@ -63,63 +60,42 @@ import json
 import os
 
 """
-this code will subscriber to the mqtt topic sent by IOT Manager then send an suspicious info via MQTT topic to the Task manager
+this code will subscriber to the mqtt topic "suspicious" sent by IOT Manager then chose one of the robot condidat to do task 
+and send mqtt trigger to smart robot controller block
 """
 
-# mqtt_config_file = "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/config/config_file.yaml"
-
+# Load configuration from YAML file
 def load_config(filename):
-
     base_path = os.path.dirname(__file__)
-    config_path = os.path.join(base_path , 'config' , filename)
-    with open(config_path , 'r') as file :
-
+    config_path = os.path.join(base_path, 'config', filename)
+    with open(config_path, 'r') as file:
         return yaml.safe_load(file)
 
-
 config = load_config('mqtt_config.yaml')
-# print(config)
 mqtt_settings = config['mqtt_settings']
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
-    client.subscribe(mqtt_settings['mqtt_topic_sub'])
-
+    print(f"Connected with result code {rc}")
+    client.subscribe(mqtt_settings['mqtt_topic_pub'])
 
 def on_message(client, userdata, msg):
-
     message = msg.payload.decode("utf-8")
-    print(f"Received '{message}' from topic '{msg.topic}'")
-    try:
-        data = json.loads(message)
-        if data["data"]["category"] == "Ding" :
-            if data["data"]["score"] > 0.6 :
+    print(f"Received message from topic '{msg.topic}': {message}")
 
-
-                # if "Key" in data and data["Key"] == "something" :
-                response = "suspecious"
-
-                local_client.publish(mqtt_settings['mqtt_topic_pub'], response)
-                print(response)
-
-        else:
-
-            print("evrything is normal (: ")
-
-    except json.JSONDecodeError as e:
-        print(f"Error: {e}")
 def main():
-
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
-    client.connect(mqtt_settings['mqtt_brocker'] , mqtt_settings['mqtt_port'] , 60)
 
-    local_client = mqtt.Client()
-    local_client.connect(mqtt_settings['mqtt_local_brocker'] , mqtt_settings['mqtt_port'] , 60)
-    local_client.loop_start()
-    
+    # Connect to the local broker
+    client.connect(mqtt_settings['mqtt_local_brocker'], mqtt_settings['mqtt_port'], 60)
+
     client.loop_forever()
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     main()
+
+but the second it dosnt work
+
+
+
