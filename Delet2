@@ -3,6 +3,65 @@ import yaml
 import json
 import os
 
+class MQTTManager:
+    def __init__(self, config_file):
+        self.config = self.load_config(config_file)
+        self.client = mqtt.Client()
+        self.local_client = mqtt.Client()
+
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+
+    def load_config(self, filename):
+        base_path = os.path.dirname(__file__)
+        config_path = os.path.join(base_path, 'config', filename)
+        with open(config_path, 'r') as file:
+            return yaml.safe_load(file)
+
+    def on_connect(self, client, userdata, flags, rc):
+        print(f"Connected with result code {rc}")
+        client.subscribe(self.config['mqtt_settings']['mqtt_topic_sub'])
+
+    def on_message(self, client, userdata, msg):
+        message = msg.payload.decode("utf-8")
+        print(f"Received '{message}' from topic '{msg.topic}'")
+        try:
+            data = json.loads(message)
+            if data["data"]["category"] == "Ding" and data["data"]["score"] > 0.6:
+                response = "suspicious"
+                self.local_client.publish(self.config['mqtt_settings']['mqtt_topic_pub'], response)
+                print(response)
+            else:
+                print("Everything is normal (:")
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+
+    def connect_clients(self):
+        self.client.connect(self.config['mqtt_settings']['mqtt_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
+        self.local_client.connect(self.config['mqtt_settings']['mqtt_local_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
+        self.local_client.loop_start()
+
+    def loop_forever(self):
+        self.client.loop_forever()
+
+def main():
+    manager = MQTTManager('mqtt_config.yaml')
+    manager.connect_clients()
+    manager.loop_forever()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+import paho.mqtt.client as mqtt
+import yaml
+import json
+import os
+
 """
 this code will subscriber to the mqtt topic sent by IOT Manager then send an suspicious info via MQTT topic to the Task manager
 """
