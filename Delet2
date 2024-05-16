@@ -1,57 +1,5 @@
 import paho.mqtt.client as mqtt
 import yaml
-import os
-
-# Load configuration from YAML file
-def load_config(filename):
-    base_path = os.path.dirname(__file__)
-    config_path = os.path.join(base_path, 'config', filename)
-    with open(config_path, 'r') as file:
-        return yaml.safe_load(file)
-
-config = load_config('mqtt_config.yaml')
-mqtt_settings = config['mqtt_settings']
-
-# Define the MQTT Client
-def on_connect(client, userdata, flags, rc):
-    print(f"Connected with result code {rc}")
-    client.subscribe(mqtt_settings['mqtt_topic_pub'])
-
-def on_message(client, userdata, msg):
-    message = msg.payload.decode("utf-8")
-    print(f"Received message from topic '{msg.topic}': {message}")
-
-def main():
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    # Connect to the local broker
-    client.connect(mqtt_settings['mqtt_local_brocker'], mqtt_settings['mqtt_port'], 60)
-
-    # Blocking call that processes network traffic, dispatches callbacks, and handles reconnecting.
-    client.loop_forever()
-
-if __name__ == "__main__":
-    main()
-
-
-
-use like this 
-
-this is the config 
-mqtt_settings: 
-  mqtt_brocker: "192.168.10.182" 
-  mqtt_local_brocker: "localhost"
-  mqtt_port: 1883
-  mqtt_topic_sub: homein/core/iot/# #/homein/core/iot/# << the same thing !!
-  mqtt_topic_pub: /suspicious
-
-this is the node taht subscriber the external topic and publish after processing 
-
-
-import paho.mqtt.client as mqtt
-import yaml
 import json
 import os
 
@@ -92,7 +40,7 @@ def on_message(client, userdata, msg):
                 # if "Key" in data and data["Key"] == "something" :
                 response = "suspecious"
 
-                client.publish(mqtt_settings['mqtt_topic_pub'], response)
+                local_client.publish(mqtt_settings['mqtt_topic_pub'], response)
                 print(response)
 
         else:
@@ -106,11 +54,13 @@ def main():
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
-
     client.connect(mqtt_settings['mqtt_brocker'] , mqtt_settings['mqtt_port'] , 60)
+
+    local_client = mqtt.Client()
+    local_client.connect(mqtt_settings['mqtt_local_brocker'] , mqtt_settings['mqtt_port'] , 60)
+    local_client.loop_start()
+    
     client.loop_forever()
 
 if __name__ == "__main__" :
     main()
-
-give the node that will subscribe 
