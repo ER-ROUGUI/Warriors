@@ -1,3 +1,5 @@
+ok now its working good 
+
 import paho.mqtt.client as mqtt
 import yaml
 import json
@@ -32,13 +34,14 @@ class MQTTManager:
                 self.local_client.publish(self.config['mqtt_settings']['mqtt_topic_pub'], response)
                 print(response)
             else:
-                client.publish(mqtt_settings['mqtt_topic_pub'], "nothiong recieved")
+                self.local_client.publish(self.config['mqtt_settings']['mqtt_topic_pub'], "nothiong recieved")
                 print("Everything is normal (:")
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
 
     def connect_clients(self):
         self.client.connect(self.config['mqtt_settings']['mqtt_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
+        self.local_client.username_pw_set("ros2", "niceiam21!")
         self.local_client.connect(self.config['mqtt_settings']['mqtt_local_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
         self.local_client.loop_start()
 
@@ -123,6 +126,11 @@ if __name__ == "__main__":
 # if __name__ == "__main__" :
 #     main()
 
+
+send info to this code 
+what i need now is to add a publisher in this code when i receive "suspecious" in this topic mqtt_settings['mqtt_topic_pub'] 
+i will publish in another topic in the localhost named /to_control 
+
 import paho.mqtt.client as mqtt
 import yaml
 import json
@@ -130,7 +138,7 @@ import os
 
 """
 this code will subscriber to the mqtt topic "suspicious" sent by IOT Manager then chose one of the robot condidat to do task 
-and send mqtt trigger to smart robot controller block
+and send mqtt trigger to smart robot controller Bloc
 """
 
 # Load configuration from YAML file
@@ -144,15 +152,26 @@ config = load_config('mqtt_config.yaml')
 mqtt_settings = config['mqtt_settings']
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Connected with result code {rc}")
-    # print(f'suscribing to the topic{mqtt_settings['mqtt_topic_pub']}')
-    client.subscribe(mqtt_settings['mqtt_topic_pub_task'])
+    if rc ==0 :
+        client.subscribe(mqtt_settings['mqtt_topic_pub'])
+        print("subscriber to topic IOT")
+        # print(f'suscribing to the topic{mqtt_settings['mqtt_topic_pub']}')
+
+    else:
+        print("failed to connect")
+
+        
 
 def on_message(client, userdata, msg):
     message = msg.payload.decode("utf-8")
     print(f"Received message from topic '{msg.topic}': {message}")
 
 def main():
+
+    config = load_config('mqtt_config.yaml')
+    mqtt_settings = config['mqtt_settings']
+
+    
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
@@ -166,15 +185,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-
-mqtt_settings: 
-  mqtt_brocker: "192.168.10.182" 
-  mqtt_local_brocker: "localhost"
-  mqtt_port: 1883
-  mqtt_topic_sub: homein/core/iot/# #/homein/core/iot/# << the same thing !!
-  mqtt_topic_pub: /suspicious
-  mqtt_topic_pub_task: /suspicious_thing
-
-
-so the first class code susbscribe and get "Ding" than publish in localhost "suspecious" but the seconde code can't receive this "suspecious" 
