@@ -1,3 +1,98 @@
+import rclpy
+from rclpy.node import Node
+import paho.mqtt.client as mqtt
+import yaml
+import json
+import os
+from geometry_msgs.msg import PoseStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+
+class MQTTROS2Navigator(Node):
+    def __init__(self, config_file):
+        super().__init__('mqtt_ros2_navigator')
+        self.config = self.load_config(config_file)
+        self.navigator = BasicNavigator()
+
+        # Setup MQTT client
+        self.mqtt_client = mqtt.Client()
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        self.mqtt_client.connect(self.config['mqtt_settings']['mqtt_brocker'], self.config['mqtt_settings']['mqtt_port'], 60)
+        self.mqtt_client.loop_start()
+
+        # Initialize navigator
+        self.init_navigator()
+
+    def load_config(self, filename):
+        base_path = os.path.dirname(__file__)
+        config_path = os.path.join(base_path, 'config', filename)
+        with open(config_path, 'r') as file:
+            return yaml.safe_load(file)
+
+    def on_connect(self, client, userdata, flags, rc):
+        print(f"Connected with result code {rc}")
+        client.subscribe(self.config['mqtt_settings']['mqtt_topic_sub'])
+
+    def on_message(self, client, userdata, msg):
+        message = msg.payload.decode("utf-8")
+        self.process_message(message)
+
+    def init_navigator(self):
+        self.navigator.lifecycleStartup()
+        self.navigator.waitUntilNav2Active()
+
+    def process_message(self, message):
+        try:
+            data = json.loads(message)
+            if data.get("action") == "navigate":
+                self.set_goal(data.get("x"), data.get("y"))
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+
+    def set_goal(self, x, y):
+        goal_pose = PoseStamped()
+        goal_pose.header.stamp = self.get_clock().now().to_msg()
+        goal_pose.header.frame_id = 'map'
+        goal_pose.pose.position.x = x
+        goal_pose.pose.position.y = y
+        goal_pose.pose.orientation.z = 0.0
+        goal_pose.pose.orientation.w = 1.0
+        print(f"Setting goal to {x}, {y}")
+
+        # Set initial pose if necessary
+        # self.navigator.setInitialPose(initial_pose)
+
+        self.navigator.goToPose(goal_pose)
+
+        while not self.navigator.isTaskComplete():
+            feedback = self.navigator.getFeedback()
+            if feedback:
+                print(f'Navigating... {feedback.distance_to_goal:.2f} meters left.')
+
+        result = self.navigator.getResult()
+        if result == TaskResult.SUCCEEDED:
+            print('Goal reached successfully!')
+        else:
+            print('Failed to reach goal.')
+
+    def cleanup(self):
+        self.navigator.lifecycleShutdown()
+        self.mqtt_client.loop_stop()
+
+def main(args=None):
+    rclpy.init(args=args)
+    navigator = MQTTROS2Navigator('mqtt_config.yaml')
+    rclpy.spin(navigator)
+    navigator.cleanup()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
