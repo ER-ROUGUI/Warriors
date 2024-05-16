@@ -27,11 +27,12 @@ class MQTTManager:
         print(f"Received '{message}' from topic '{msg.topic}'")
         try:
             data = json.loads(message)
-            if data["data"]["category"] == "Ding" and data["data"]["score"] > 0.6:
+            if data["data"]["category"] == "Ding" : #and data["data"]["score"] > 0.6:
                 response = "suspicious"
                 self.local_client.publish(self.config['mqtt_settings']['mqtt_topic_pub'], response)
                 print(response)
             else:
+                client.publish(mqtt_settings['mqtt_topic_pub'], "nothiong recieved")
                 print("Everything is normal (:")
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
@@ -52,7 +53,75 @@ def main():
 if __name__ == "__main__":
     main()
 
-this is the subscriber to the localhost 
+
+
+
+# import paho.mqtt.client as mqtt
+# import yaml
+# import json
+# import os
+
+# """
+# this code will subscriber to the mqtt topic sent by IOT Manager then send an suspicious info via MQTT topic to the Task manager
+# """
+
+# # mqtt_config_file = "/app/augmented-robots/server/nux_ws/src/IOT_Manager/Suspicious_extension/config/config_file.yaml"
+
+# def load_config(filename):
+
+#     base_path = os.path.dirname(__file__)
+#     config_path = os.path.join(base_path , 'config' , filename)
+#     with open(config_path , 'r') as file :
+
+#         return yaml.safe_load(file)
+
+
+# config = load_config('mqtt_config.yaml')
+# # print(config)
+# mqtt_settings = config['mqtt_settings']
+
+# def on_connect(client, userdata, flags, rc):
+#     print("Connected with result code "+str(rc))
+#     client.subscribe(mqtt_settings['mqtt_topic_sub'])
+
+
+# def on_message(client, userdata, msg):
+
+#     message = msg.payload.decode("utf-8")
+#     print(f"Received '{message}' from topic '{msg.topic}'")
+#     try:
+#         data = json.loads(message)
+#         if data["data"]["category"] == "Ding" :
+#             if data["data"]["score"] > 0.6 :
+
+
+#                 # if "Key" in data and data["Key"] == "something" :
+#                 response = "suspecious"
+
+#                 local_client.publish(mqtt_settings['mqtt_topic_pub'], response)
+#                 print(response)
+
+#         else:
+
+#             print("evrything is normal (: ")
+
+#     except json.JSONDecodeError as e:
+#         print(f"Error: {e}")
+# def main():
+
+#     client = mqtt.Client()
+#     client.on_connect = on_connect
+#     client.on_message = on_message
+#     client.connect(mqtt_settings['mqtt_brocker'] , mqtt_settings['mqtt_port'] , 60)
+
+#     local_client = mqtt.Client()
+#     local_client.connect(mqtt_settings['mqtt_local_brocker'] , mqtt_settings['mqtt_port'] , 60)
+#     local_client.loop_start()
+
+#     client.loop_forever()
+
+# if __name__ == "__main__" :
+#     main()
 
 import paho.mqtt.client as mqtt
 import yaml
@@ -76,7 +145,8 @@ mqtt_settings = config['mqtt_settings']
 
 def on_connect(client, userdata, flags, rc):
     print(f"Connected with result code {rc}")
-    client.subscribe(mqtt_settings['mqtt_topic_pub'])
+    # print(f'suscribing to the topic{mqtt_settings['mqtt_topic_pub']}')
+    client.subscribe(mqtt_settings['mqtt_topic_pub_task'])
 
 def on_message(client, userdata, msg):
     message = msg.payload.decode("utf-8")
@@ -88,6 +158,7 @@ def main():
     client.on_message = on_message
 
     # Connect to the local broker
+    client.username_pw_set("ros2", "niceiam21!")
     client.connect(mqtt_settings['mqtt_local_brocker'], mqtt_settings['mqtt_port'], 60)
 
     client.loop_forever()
@@ -95,7 +166,15 @@ def main():
 if __name__ == "__main__":
     main()
 
-but the second it dosnt work
 
 
+mqtt_settings: 
+  mqtt_brocker: "192.168.10.182" 
+  mqtt_local_brocker: "localhost"
+  mqtt_port: 1883
+  mqtt_topic_sub: homein/core/iot/# #/homein/core/iot/# << the same thing !!
+  mqtt_topic_pub: /suspicious
+  mqtt_topic_pub_task: /suspicious_thing
 
+
+so the first class code susbscribe and get "Ding" than publish in localhost "suspecious" but the seconde code can't receive this "suspecious" 
