@@ -1,3 +1,105 @@
+import paho.mqtt.client as mqtt
+from datetime import datetime
+import yaml
+import json
+import os
+
+"""
+This code subscribes to the MQTT topic "suspicious" sent by IoT Manager,
+chooses one of the robot candidates to do the task, and sends an MQTT trigger
+to the Smart Robot Controller.
+"""
+
+# Dictionary to store real-time status of robots
+robot_statuses = {}
+
+# Load configuration from YAML file
+def load_config(filename):
+    base_path = os.path.dirname(__file__)
+    config_path = os.path.join(base_path, 'config', filename)
+    with open(config_path, 'r') as file:
+        return yaml.safe_load(file)
+
+# Load configuration from JSON file
+def load_json(filename):
+    base_path = os.path.dirname(__file__)
+    config_path = os.path.join(base_path, 'config', filename)
+    with open(config_path, 'r') as file:
+        return json.load(file)
+
+config = load_config('mqtt_config.yaml')
+config_robots = load_json('robot_config.json')
+mqtt_settings = config['mqtt_settings']
+
+# MQTT callbacks
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Connected to IoT Manager")
+        client.subscribe(mqtt_settings['mqtt_topic_pub'])
+        client.subscribe("availability")  # Subscribe to availability topic
+        print("Subscribed to topics")
+    else:
+        print("Failed to connect")
+
+def on_message(client, userdata, msg):
+    message = msg.payload.decode("utf-8")
+    print(f"Received message from topic '{msg.topic}': {message}")
+
+    if msg.topic == mqtt_settings['mqtt_topic_pub']:
+        try:
+            data = json.loads(message)
+            if data == "suspicious":
+                assigned_robot = analyze_task(config_robots)
+                if assigned_robot:
+                    task_message = {
+                        'robot_id': assigned_robot['id'],
+                        'task': 'navigate',
+                        'goal_position': data.get('goal_position', {})
+                    }
+                    client.publish(mqtt_settings['mqtt_topic_controller'], json.dumps(task_message))
+                    print(f"Published message to Smart Robot Controller: {task_message}")
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+    elif msg.topic == "availability":
+        try:
+            robot_id, availability = message.split(":")
+            robot_statuses[robot_id] = {
+                'availability': availability == 'available'
+            }
+        except Exception as e:
+            print(f"Error parsing availability message: {e}")
+
+# Task analysis function
+def analyze_task(config):
+    assigned_robot = None
+    for robot in config['robots']:
+        robot_id = robot['id']
+        if robot_id in robot_statuses:
+            status = robot_statuses[robot_id]
+            if status['availability']:
+                assigned_robot = robot
+                break
+    return assigned_robot
+
+# Main function
+def main():
+    config = load_config('mqtt_config.yaml')
+    mqtt_settings = config['mqtt_settings']
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    # Connect to the local broker
+    client.username_pw_set("ros2", "niceiam21!")
+    client.connect(mqtt_settings['mqtt_local_broker'], mqtt_settings['mqtt_port'], 60)
+
+    client.loop_forever()
+
+if __name__ == "__main__":
+    main()
+
+
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
