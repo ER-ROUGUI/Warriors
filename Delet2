@@ -1,3 +1,42 @@
+{
+  "robots": [
+    {
+      "id": "tb3_1",
+      "namespace": "tb3_1",
+      "tasks": ["navigate", "capture_image"],
+      "initial_pose": {"x": 0.0, "y": 0.0, "z": 0.0},
+      "parameters": {
+        "battery_level": 100,
+        "wifi_quality": 100,
+        "availability": true
+      }
+    },
+    {
+      "id": "tb3_2",
+      "namespace": "tb3_2",
+      "tasks": ["navigate", "clean"],
+      "initial_pose": {"x": 2.0, "y": 2.0, "z": 0.0},
+      "parameters": {
+        "battery_level": 100,
+        "wifi_quality": 100,
+        "availability": true
+      }
+    },
+    {
+      "id": "custom_robot",
+      "namespace": "custom_robot",
+      "tasks": ["navigate", "extend_wifi"],
+      "initial_pose": {"x": 4.0, "y": 4.0, "z": 0.0},
+      "parameters": {
+        "battery_level": 100,
+        "wifi_quality": 100,
+        "availability": true
+      }
+    }
+  ]
+}
+
+
 import paho.mqtt.client as mqtt
 import json
 from datetime import datetime
