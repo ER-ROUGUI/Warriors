@@ -1,433 +1,111 @@
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
-
-class RobotStatusPublisher(Node):
-    def __init__(self):
-        super().__init__('robot_status_publisher')
-        self.publisher_ = self.create_publisher(String, 'availability', 10)
-        self.timer = self.create_timer(1.0, self.publish_status)
-        
-    def publish_status(self):
-        msg = String()
-        msg.data = 'I am available'
-        self.publisher_.publish(msg)
-        self.get_logger().info(f'Publishing: {msg.data}')
-        
-def main(args=None):
-    rclpy.init(args=args)
-    node = RobotStatusPublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
-
-
-
-import rclpy
-from rclpy.node import Node
-from my_robot_status.msg import RobotStatus
-import random
-
-class RobotStatusPublisher(Node):
-    def __init__(self):
-        super().__init__('robot_status_publisher')
-        self.publisher_ = self.create_publisher(RobotStatus, 'robot_status', 10)
-        self.timer = self.create_timer(1.0, self.publish_status)
-        self.robot_id = 'tb3_1'
-        
-    def publish_status(self):
-        status_msg = RobotStatus()
-        status_msg.robot_id = self.robot_id
-        status_msg.availability = random.choice([True, False])  # Randomly choose availability
-        status_msg.battery_level = random.randint(0, 100)       # Random battery level
-        status_msg.wifi_quality = random.randint(0, 100)        # Random Wi-Fi quality
-        
-        self.publisher_.publish(status_msg)
-        self.get_logger().info(f'Publishing: {status_msg}')
-        
-def main(args=None):
-    rclpy.init(args=args)
-    node = RobotStatusPublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
-
-
-
-import rclpy
-from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import String
-from visualization_msgs.msg import Marker
-import math
-
-# Define zones with colors (R, G, B, A)
-zones = {
-    'zone_1': {'type': 'circle', 'center': (2.0, 2.0), 'radius': 1.0, 'color': (1.0, 0.0, 0.0, 0.5)},
-    'zone_2': {'type': 'square', 'center': (5.0, 5.0), 'length': 2.0, 'color': (0.0, 1.0, 0.0, 0.5)},
-    'zone_3': {'type': 'circle', 'center': (8.0, 8.0), 'radius': 1.5, 'color': (0.0, 0.0, 1.0, 0.5)}
-}
-
-class ZoneMonitor(Node):
-
-    def __init__(self):
-        super().__init__('zone_monitor')
-        self.zone_pub = self.create_publisher(String, 'zone_info', 10)
-        self.marker_pub = self.create_publisher(Marker, 'zone_markers', 10)
-        self.create_subscription(PoseStamped, 'amcl_pose', self.pose_callback, 10)
-        
-        self.current_zone = None
-        self.timer = self.create_timer(1.0, self.publish_markers)
-
-    def is_inside_circle(self, center, radius, position):
-        return math.sqrt((center[0] - position[0])**2 + (center[1] - position[1])**2) <= radius
-
-    def is_inside_square(self, center, length, position):
-        half_length = length / 2.0
-        return (center[0] - half_length <= position[0] <= center[0] + half_length and
-                center[1] - half_length <= position[1] <= center[1] + half_length)
-
-    def check_zones(self, position):
-        for zone_name, zone in zones.items():
-            if zone['type'] == 'circle':
-                if self.is_inside_circle(zone['center'], zone['radius'], position):
-                    if self.current_zone != zone_name:
-                        self.current_zone = zone_name
-                        self.get_logger().info(f"Entering {zone_name}")
-                        self.zone_pub.publish(String(data=f"Entering {zone_name}"))
-                    return
-            elif zone['type'] == 'square':
-                if self.is_inside_square(zone['center'], zone['length'], position):
-                    if self.current_zone != zone_name:
-                        self.current_zone = zone_name
-                        self.get_logger().info(f"Entering {zone_name}")
-                        self.zone_pub.publish(String(data=f"Entering {zone_name}"))
-                    return
-        self.current_zone = None
-
-    def pose_callback(self, msg):
-        position = (msg.pose.position.x, msg.pose.position.y)
-        self.check_zones(position)
-
-    def publish_markers(self):
-        for i, (zone_name, zone) in enumerate(zones.items()):
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.header.stamp = self.get_clock().now().to_msg()
-            marker.ns = "zones"
-            marker.id = i
-            marker.action = Marker.ADD
-            marker.lifetime = rclpy.duration.Duration().to_msg()
-            
-            color = zone['color']
-            marker.color.r = color[0]
-            marker.color.g = color[1]
-            marker.color.b = color[2]
-            marker.color.a = color[3]
-            
-            if zone['type'] == 'circle':
-                marker.type = Marker.CYLINDER
-                marker.pose.position.x = zone['center'][0]
-                marker.pose.position.y = zone['center'][1]
-                marker.pose.position.z = 0
-                marker.scale.x = zone['radius'] * 2
-                marker.scale.y = zone['radius'] * 2
-                marker.scale.z = 0.1
-            elif zone['type'] == 'square':
-                marker.type = Marker.CUBE
-                marker.pose.position.x = zone['center'][0]
-                marker.pose.position.y = zone['center'][1]
-                marker.pose.position.z = 0
-                marker.scale.x = zone['length']
-                marker.scale.y = zone['length']
-                marker.scale.z = 0.1
-            
-            self.marker_pub.publish(marker)
-
-def main(args=None):
-    rclpy.init(args=args)
-    zone_monitor = ZoneMonitor()
-    rclpy.spin(zone_monitor)
-    zone_monitor.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
-
-
-
-
-
-{
-  "robots": [
-    {
-      "id": "tb3_1",
-      "namespace": "tb3_1",
-      "tasks": ["navigate", "capture_image"],
-      "initial_pose": {"x": 0.0, "y": 0.0, "z": 0.0},
-      "parameters": {
-        "battery_level": 100,
-        "wifi_quality": 100,
-        "availability": true
-      }
-    },
-    {
-      "id": "tb3_2",
-      "namespace": "tb3_2",
-      "tasks": ["navigate", "clean"],
-      "initial_pose": {"x": 2.0, "y": 2.0, "z": 0.0},
-      "parameters": {
-        "battery_level": 100,
-        "wifi_quality": 100,
-        "availability": true
-      }
-    },
-    {
-      "id": "custom_robot",
-      "namespace": "custom_robot",
-      "tasks": ["navigate", "extend_wifi"],
-      "initial_pose": {"x": 4.0, "y": 4.0, "z": 0.0},
-      "parameters": {
-        "battery_level": 100,
-        "wifi_quality": 100,
-        "availability": true
-      }
-    }
-  ]
-}
-
-
 import paho.mqtt.client as mqtt
-import json
 from datetime import datetime
-
-# Configuration file path
-config_file = 'robot_config.json'
-
-# Dictionary to store real-time status of robots
-robot_statuses = {}
-
-def load_config():
-    with open(config_file, 'r') as file:
-        return json.load(file)
-
-def on_robot_status(client, userdata, message):
-    # Update robot status in real-time
-    status = json.loads(message.payload.decode())
-    robot_statuses[status['robot_id']] = status
-
-def analyze_task(data, config):
-    current_hour = datetime.now().hour
-    noise_type = data.get('noise_type')
-    
-    assigned_robot = None
-    for robot in config['robots']:
-        robot_id = robot['id']
-        if robot_id in robot_statuses:
-            status = robot_statuses[robot_id]
-            if status['availability'] and status['battery_level'] > 20 and status['wifi_quality'] > 50:
-                if noise_type == 'knock' and 'navigate' in robot['tasks']:
-                    assigned_robot = robot
-                    break
-                elif noise_type == 'ding' and 'capture_image' in robot['tasks']:
-                    assigned_robot = robot
-                    break
-                elif current_hour >= 7 and current_hour <= 9 and 'clean' in robot['tasks']:
-                    assigned_robot = robot
-                    break
-
-    # If multiple robots are available for a task, prioritize based on capability
-    if noise_type == 'knock':
-        for robot in config['robots']:
-            robot_id = robot['id']
-            if robot_id in robot_statuses:
-                status = robot_statuses[robot_id]
-                if status['availability'] and status['battery_level'] > 20 and status['wifi_quality'] > 50 and 'navigate' in robot['tasks']:
-                    assigned_robot = robot
-                    break
-    elif noise_type == 'ding':
-        for robot in config['robots']:
-            robot_id = robot['id']
-            if robot_id in robot_statuses:
-                status = robot_statuses[robot_id]
-                if status['availability'] and status['battery_level'] > 20 and status['wifi_quality'] > 50 and 'capture_image' in robot['tasks']:
-                    assigned_robot = robot
-                    break
-
-    return assigned_robot
-
-def on_iot_manager_message(client, userdata, message):
-    # Received data from IoT Manager
-    data = json.loads(message.payload.decode())
-    
-    # Load the robot configurations
-    config = load_config()
-    
-    # Analyze and decide which robot to assign the task to
-    assigned_robot = analyze_task(data, config)
-    
-    if assigned_robot:
-        # Prepare the task message
-        task_message = {
-            'robot_id': assigned_robot['id'],
-            'task': data['task'],
-            'goal_position': data['goal_position']
-        }
-        
-        # Send task to Smart Robot Controller
-        client.publish('smart_robot_controller/task', json.dumps(task_message))
-
-def on_connect(client, userdata, flags, rc):
-    print("Connected with result code " + str(rc))
-    client.subscribe("iot_manager/data")
-    client.subscribe("robot_status/#")
-
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_iot_manager_message
-
-client.message_callback_add("robot_status/#", on_robot_status)
-
-client.connect("mqtt_broker_address", 1883, 60)
-client.loop_forever()
-
-
-
-
-
-
-here 
-
-import rclpy
-from rclpy.node import Node
-import paho.mqtt.client as mqtt
 import yaml
 import json
 import os
-from geometry_msgs.msg import PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 
-class MQTTROS2Navigator(Node):
-    def __init__(self):
-        super().__init__('mqtt_ros2_navigator')
-        # self.config = self.load_config(config_file)
-        self.navigator = BasicNavigator()
+"""
+this code will subscriber to the mqtt topic "suspicious" sent by IOT Manager then chose one of the robot condidat to do task 
+and send mqtt trigger to smart robot controller Bloc
+"""
+robot_statuses = {}
+# Load configuration from YAML file ###################################
+def load_config(filename):
+    base_path = os.path.dirname(__file__)
+    config_path = os.path.join(base_path, 'config', filename)
+    with open(config_path, 'r') as file:
+        return yaml.safe_load(file)
+    
+def load_json(filename):
+    base_path = os.path.dirname(__file__)
+    config_path = os.path.join(base_path, 'config', filename)
+    with open(config_path, 'r') as file:
+        return json.load(file)
 
-        # Setup MQTT client
-        self.mqtt_client = mqtt.Client()
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_message = self.on_message
-        self.mqtt_client.username_pw_set("ros2" , "niceiam21!")
-        self.mqtt_client.connect("localhost", 1883, 60)
-        self.mqtt_client.loop_start()
+config = load_config('mqtt_config.yaml')
+config_robots = load_json('robot_config.json')
+mqtt_settings = config['mqtt_settings']
 
-        # Initialize navigator
-        self.init_navigator()
+#########################################################################
+def on_connect(client, userdata, flags, rc):
+    if rc ==0 :
 
-    # def load_config(self, filename):
-    #     base_path = os.path.dirname(__file__)
-    #     config_path = os.path.join(base_path, 'config', filename)
-    #     with open(config_path, 'r') as file:
-    #         return yaml.safe_load(file)
+        print("Connected to IOT Manager")
+        client.subscribe(mqtt_settings['mqtt_topic_pub'])
+        print("subscriber to topic from IOT Manager")
 
-    def on_connect(self, client, userdata, flags, rc):
-        print(f"Connected with result code {rc}")
-        client.subscribe("/suspicious")
+    else:
+        print("failed to connect")
 
-    def on_message(self, client, userdata, msg):
-        message = msg.payload.decode("utf-8")
-        self.process_message(message)
+        
 
-    def init_navigator(self):
-        self.navigator.lifecycleStartup()
-        self.navigator.waitUntilNav2Active()
+def on_message(client, userdata, msg):
+    message = msg.payload.decode("utf-8")
+    print("received msg from Iot manager")
 
-    def process_message(self, message):
-        try:
-            data = json.loads(message)
-            if data == "navigate":
-                self.set_goal()
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
+    try:
+        data = json.loads(message)
+        if data == "suspicious" :
+            client.publish(mqtt_settings['mqtt_topic_controller'], "navigate")
+            print(f"Publeshed msg to Smart robots controller")
 
-    def set_goal(self):
-        initial_pose = PoseStamped()
-        initial_pose.header.frame_id = 'map'
-        initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        initial_pose.pose.position.x = 1.2699
-        initial_pose.pose.position.y = 1.3442
-        initial_pose.pose.orientation.z = -0.984
-        initial_pose.pose.orientation.w = 0.1759
-        self.navigator.setInitialPose(initial_pose)
+        print(f"Received message from topic '{msg.topic}': {message}")
 
-        goal_pose = PoseStamped()
-        goal_pose.header.frame_id = 'map'
-        goal_pose.header.stamp = self.navigator.get_clock().now().to_msg()
-        goal_pose.pose.position.x = 2.0
-        goal_pose.pose.position.y = 1.0
-        goal_pose.pose.orientation.w = 0.95
+    except json.JSONDecodeError as e :
+        print(f"Error decoding Json: {e}")
 
-        path = self.navigator.getPath(initial_pose, goal_pose)
-        smoothed_path = self.navigator.smoothPath(path)
+################################################################################
 
-        # Follow path
-        self.navigator.followPath(smoothed_path)
+# def on_robot_status(client, userdata, message): # I can just use a node to publish statue
 
-        i = 0
-        while not self.navigator.isTaskComplete():
+#     "here i need subscriber whitch will returne the availabilité of the two robots as "
+#     robot_statuses = {"turtelebot": 'available' , "husarion":'unavailable'}
 
-            i += 1
-            feedback = self.navigator.getFeedback()
-            if feedback and i % 5 == 0:
-                print(
-                    'Estimated distance remaining to goal position: '
-                    + '{0:.3f}'.format(feedback.distance_to_goal)
-                    + '\nCurrent speed of the robot: '
-                    + '{0:.3f}'.format(feedback.speed)
-                )
 
-        # Do something depending on the return code
-        result = self.navigator.getResult()
-        if result == TaskResult.SUCCEEDED:
-            print('Goal succeeded!')
-        elif result == TaskResult.CANCELED:
-            print('Goal was canceled!')
-        elif result == TaskResult.FAILED:
-            print('Goal failed!')
-        else:
-            print('Goal has an invalid return status!')
+#     pass
 
-        self.navigator.lifecycleShutdown()
 
-        exit(0)
+# def analyze_task(data, config):
+#     current_hour = datetime.now().hour
+#     noise_type = data.get('noise_type')
+    
+#     assigned_robot = None
+#     for robot in config['robots']:
+#         robot_id = robot['id']
+#         if robot_id in robot_statuses:
+#             status = robot_statuses[robot_id]
+#             if status['availability'] and status['battery_level'] > 20 and status['wifi_quality'] > 50:
+#                 if noise_type == 'knock' and 'navigate' in robot['tasks']:
+#                     assigned_robot = robot
+#                     break
+#                 elif noise_type == 'ding' and 'capture_image' in robot['tasks']:
+#                     assigned_robot = robot
+#                     break
+ 
 
-def main(args=None):
-    rclpy.init(args=args)
-    navigator = MQTTROS2Navigator()
-    rclpy.spin(navigator)
-    navigator.cleanup()
-    rclpy.shutdown()
+#     if noise_type == 'knock':
+#         for robot in config['robots']:
+#             robot_id = robot['id']
+#             if robot_id in robot_statuses:
+#                 status = robot_statuses[robot_id]
+#                 if status['availability'] == 'somthing' :
+#                     break
 
-if __name__ == '__main__':
+
+#     return assigned_robot
+
+def main():
+
+    config = load_config('mqtt_config.yaml')
+    mqtt_settings = config['mqtt_settings']
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+    # Connect to the local broker
+    client.username_pw_set("ros2", "niceiam21!")
+    client.connect(mqtt_settings['mqtt_local_brocker'], mqtt_settings['mqtt_port'], 60)
+
+    client.loop_forever()
+
+if __name__ == "__main__":
     main()
-
-i get this error 
-
-Connected with result code 0
-[INFO] [1715870998.799108865] [basic_navigator]: Starting up lifecycle nodes based on lifecycle_manager.
-[INFO] [1715870998.806862772] [basic_navigator]: Starting up /lifecycle_manager_localization/manage_nodes
-[INFO] [1715870998.826432411] [basic_navigator]: Starting up /lifecycle_manager_navigation/manage_nodes
-[INFO] [1715870998.840690608] [basic_navigator]: Nav2 is ready for use!
-[INFO] [1715871002.884435975] [basic_navigator]: Nav2 is ready for use!
-Error decoding JSON: Expecting value: line 1 column 1 (char 0)
-Error decoding JSON: Expecting value: line 1 column 1 (char 0)
-Error decoding JSON: Expecting value: line 1 column 1 (char 0)
-
-
-when i send mosquitto_pub -h localhost -t /suspicious -m "navigate" -u ros2 -P niceiam21!
