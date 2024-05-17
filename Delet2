@@ -1,5 +1,39 @@
 import rclpy
 from rclpy.node import Node
+from my_robot_status.msg import RobotStatus
+import random
+
+class RobotStatusPublisher(Node):
+    def __init__(self):
+        super().__init__('robot_status_publisher')
+        self.publisher_ = self.create_publisher(RobotStatus, 'robot_status', 10)
+        self.timer = self.create_timer(1.0, self.publish_status)
+        self.robot_id = 'tb3_1'
+        
+    def publish_status(self):
+        status_msg = RobotStatus()
+        status_msg.robot_id = self.robot_id
+        status_msg.availability = random.choice([True, False])  # Randomly choose availability
+        status_msg.battery_level = random.randint(0, 100)       # Random battery level
+        status_msg.wifi_quality = random.randint(0, 100)        # Random Wi-Fi quality
+        
+        self.publisher_.publish(status_msg)
+        self.get_logger().info(f'Publishing: {status_msg}')
+        
+def main(args=None):
+    rclpy.init(args=args)
+    node = RobotStatusPublisher()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+
+import rclpy
+from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 from visualization_msgs.msg import Marker
