@@ -2,6 +2,34 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 import paho.mqtt.client as mqtt
+
+class ROS2ToMQTTBridge(Node):
+    def __init__(self):
+        super().__init__('ros2_to_mqtt_bridge')
+        self.subscription = self.create_subscription(String, 'availability', self.ros2_callback, 10)
+        self.mqtt_client = mqtt.Client()
+        self.mqtt_client.username_pw_set("ros2", "niceiam21!")
+        self.mqtt_client.connect("localhost", 1883, 60)  # Adjust MQTT broker address and port as needed
+
+    def ros2_callback(self, msg):
+        self.mqtt_client.publish('availability', msg.data)
+        self.get_logger().info(f'Published to MQTT: {msg.data}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    bridge_node = ROS2ToMQTTBridge()
+    rclpy.spin(bridge_node)
+    bridge_node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+import paho.mqtt.client as mqtt
 import json
 
 class ROS2ToMQTTBridge(Node):
